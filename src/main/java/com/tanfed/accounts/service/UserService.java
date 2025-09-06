@@ -12,7 +12,7 @@ import com.tanfed.accounts.model.Office;
 
 
 
-@FeignClient(name = "USER-SERVICE", url = "${{USER_SERVICE_URL}")
+@FeignClient(name = "USER-SERVICE", url = "${USER_SERVICE_URL}")
 public interface UserService {
 	
 	@GetMapping("/auth/getofficelist")

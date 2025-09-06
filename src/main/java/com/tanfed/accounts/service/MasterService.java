@@ -17,7 +17,7 @@ import com.tanfed.accounts.model.TaxInfo;
 
 
 
-@FeignClient(name = "BASICINFO-SERVICE", url = "http://localhost:8082")
+@FeignClient(name = "BASICINFO-SERVICE", url = "${SHARED_API_URL}")
 public interface MasterService {
 
 	@GetMapping("/api/accountsmaster/fetchaccountsmasterlist")

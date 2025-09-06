@@ -18,7 +18,7 @@ import com.tanfed.accounts.model.Invoice;
 import com.tanfed.accounts.model.TermsPrice;
 
 
-@FeignClient(name = "INVENTRY-SERVICE", url = "http://localhost:8084")
+@FeignClient(name = "INVENTRY-SERVICE", url = "${INVENTORY_API_URL}")
 public interface InventryService {
 
 	@PostMapping("/api/ic/savefundtransfer")

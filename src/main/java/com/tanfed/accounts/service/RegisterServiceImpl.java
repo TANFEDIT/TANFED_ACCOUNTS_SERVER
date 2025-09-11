@@ -16,6 +16,7 @@ import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
+import com.tanfed.accounts.model.CollectionRegisterTable;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
 import com.tanfed.accounts.response.JournalRegisterTable;
@@ -357,18 +358,20 @@ public class RegisterServiceImpl implements RegisterService {
 	}
 
 	@Override
-	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead)
-			throws Exception {
+	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead,
+			String supplierName) throws Exception {
 		try {
 			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
 			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
 					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
-							&& item.getJvFor().equals("Purchase JV") && item.getJvType().equals("net"))
-					.map(item -> new CashChittaTable(item.getJvNo(), item.getJvDate(), joinJvHead(item.getRows()
-							.stream()
-							.filter(data -> data.getDrOrCr().equals("Cr") && data.getSubHead().equals(subHead)
-									&& data.getMainHead().equals("H.O a/c - Sundry Creditors"))
-							.map(data -> data.getMainHead()).collect(Collectors.toList())),
+							&& item.getJvFor().equals("Purchase JV") && item.getJvType()
+									.equals("net")
+							&& (supplierName.isEmpty() || supplierName.equals(item.getSupplierName())))
+					.map(item -> new CashChittaTable(item.getJvNo(), item.getJvDate(),
+							joinJvHead(item.getRows().stream()
+									.filter(data -> data.getDrOrCr().equals("Cr") && data.getSubHead().equals(subHead)
+											&& data.getMainHead().equals("H.O a/c - Sundry Creditors"))
+									.map(data -> data.getMainHead()).collect(Collectors.toList())),
 							joinJvHead(item.getRows().stream()
 									.filter(data -> data.getDrOrCr().equals("Cr") && data.getSubHead().equals(subHead)
 											&& data.getMainHead().equals("H.O a/c - Sundry Creditors"))
@@ -386,7 +389,8 @@ public class RegisterServiceImpl implements RegisterService {
 							&& item.getVoucherFor().equals("CheckMemoGoods") && item.getSubHead().equals(subHead)
 							&& item.getMainHead().equals("H.O a/c - Sundry Creditors")
 							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
-									.equals(month))
+									.equals(month)
+							&& (supplierName.isEmpty() || supplierName.equals(item.getPaidTo())))
 					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
 							item.getSubHead(), item.getNarration(), null, item.getAmount(), "PV"))
 					.collect(Collectors.toList()));
@@ -396,7 +400,8 @@ public class RegisterServiceImpl implements RegisterService {
 							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
 									.equals(month)
 							&& item.getMainHead().equals("H.O a/c - Sundry Creditors")
-							&& item.getSubHead().equals(subHead))
+							&& item.getSubHead().equals(subHead) && item.getSubHead().equals(subHead)
+							&& (supplierName.isEmpty() || supplierName.equals(item.getNameOfInstitution())))
 					.map(item -> {
 						double credit = 0.0, debit = 0.0;
 						if (item.getIdNo().startsWith("DN")) {
@@ -417,12 +422,12 @@ public class RegisterServiceImpl implements RegisterService {
 	private SupplierAdvanceService supplierAdvanceService;
 
 	@Override
-	public List<CashChittaTable> fetchSupplierAdvanceData(String month) throws Exception {
+	public List<CashChittaTable> fetchSupplierAdvanceData(String month, String supplierName) throws Exception {
 		try {
 			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
-			supplierAdvanceService
-					.fetchOutstandingAdvancesByProduct("").stream().filter(item -> String
-							.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear()).equals(month))
+			supplierAdvanceService.fetchOutstandingAdvancesByProduct("").stream()
+					.filter(item -> String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
+							.equals(month) && (supplierName.isEmpty() || supplierName.equals(item.getSupplierName())))
 					.map(item -> {
 						double credit = 0.0, debit = 0.0;
 						debit = item.getPv().getAmount();
@@ -431,6 +436,40 @@ public class RegisterServiceImpl implements RegisterService {
 								credit, debit, "SUPPLIERADVANCE");
 					}).collect(Collectors.toList());
 			return list;
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	@Override
+	public List<CollectionRegisterTable> fetchChequeCollectionData(String month, String officeName) throws Exception {
+		try {
+			return adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
+					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getReceiptMode().equals("Cheque")
+							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
+									.equals(month))
+					.map(item -> new CollectionRegisterTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getReceivedAmount(), item.getReceivedFrom(), null, null, null, null,
+							item.getAccountType(), item.getBranchName(), item.getAccountNo(), item.getDepositDate(),
+							item.getDateOfCollection(), item.getBankCharges()))
+					.collect(Collectors.toList());
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	@Override
+	public List<CollectionRegisterTable> fetchChequeIssueData(String month, String officeName) throws Exception {
+		try {
+			return paymentVoucherService.getVoucherByOfficeName(officeName).stream()
+					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
+							&& item.getPvType().equals("Cheque Payment Voucher")
+							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
+									.equals(month))
+					.map(item -> new CollectionRegisterTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getAmount(), null, item.getPaidTo(), item.getChequeNumber(),
+							item.getChequeDate(), item.getIssueBankName(), null, null, null, null, null, null))
+					.collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new Exception(e);
 		}

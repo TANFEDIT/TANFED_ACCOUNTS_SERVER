@@ -44,7 +44,7 @@ public class JournalVoucher {
 	private String idNo;
 	private List<String> ifmsId;
 	private String narration;
-	
+	private String supplierName;
 	private Double debit;
 	
 	private Double totalDr;

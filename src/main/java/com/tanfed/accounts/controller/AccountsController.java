@@ -197,7 +197,7 @@ public class AccountsController {
 
 	@GetMapping("/accountsfilterdata")
 	public Vouchers getFilteredDataHandler(@RequestParam String formType, @RequestParam String officeName,
-			@RequestParam String voucherStatus, @RequestParam String voucherNo,
+			@RequestParam(required = false) String voucherStatus, @RequestParam(required = false) String voucherNo,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
 			@RequestHeader("Authorization") String jwt) throws Exception {

@@ -3,6 +3,7 @@ package com.tanfed.accounts.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.tanfed.accounts.model.CollectionRegisterTable;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
 import com.tanfed.accounts.response.JournalRegisterTable;
@@ -26,8 +27,12 @@ public interface RegisterService {
 	public List<CashChittaTable> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
 			String firmType) throws Exception;
 
-	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead)
+	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead, String supplierName)
 			throws Exception;
 
-	public List<CashChittaTable> fetchSupplierAdvanceData(String month) throws Exception;
+	public List<CashChittaTable> fetchSupplierAdvanceData(String month, String supplierName) throws Exception;
+
+	public List<CollectionRegisterTable> fetchChequeCollectionData(String month, String officeName) throws Exception;
+	
+	public List<CollectionRegisterTable> fetchChequeIssueData(String month, String officeName) throws Exception;
 }

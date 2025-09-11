@@ -3,6 +3,8 @@ package com.tanfed.accounts.response;
 import java.util.List;
 import java.util.Set;
 
+import com.tanfed.accounts.model.CollectionRegisterTable;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,7 +24,10 @@ public class Registers {
 	private List<JournalRegisterTable> journalRegister;
 	private List<CashChittaTable> subsidyLedger;
 	private List<CashChittaTable> generalLedger;
+	private List<CollectionRegisterTable> chequeCollectionRegister;
+	private List<CollectionRegisterTable> chequeIssueRegister;
 	private Double ob;
+	private Double cb;
 	private Double obSa;
 	private Double obCa;
 	private Double obNpa;

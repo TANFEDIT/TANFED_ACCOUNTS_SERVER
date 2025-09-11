@@ -246,7 +246,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								.map(BankInfo::getBranchName).collect(Collectors.toList()).get(0));
 
 						List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName)
-								.stream().filter(item -> item.getAccountNo().equals(Long.valueOf(accountNo)))
+								.stream().filter(item -> item.getPvType().equals(pvType))
 								.collect(Collectors.toList());
 						if (!pendingPvs.isEmpty()) {
 							throw new Exception("Approve previous Payment voucher!");
@@ -281,7 +281,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				do {
 					LocalDate previousDate = date.minusDays(n++);
 					obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream().filter(
-							item -> item.getBankBalance() != null && item.getAccNo().equals(Long.valueOf(accountNo)))
+							item -> item.getAccNo() != null && item.getAccNo().equals(Long.valueOf(accountNo)))
 							.collect(Collectors.toList());
 				} while (obData.isEmpty());
 				return obData.get(0).getBankBalance();

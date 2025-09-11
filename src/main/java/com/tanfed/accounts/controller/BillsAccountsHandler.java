@@ -286,7 +286,19 @@ public class BillsAccountsHandler {
 					ob += obData.stream().mapToDouble(item -> item.getCashBalance()).sum();
 				}
 				data.setOb(ob);
+				data.setCb(ob + generalLedgerData.stream().mapToDouble(item -> item.getReceivedAmount()).sum()
+						- generalLedgerData.stream().mapToDouble(item -> item.getPaidAmount()).sum());
 			}
+			return data;
+		}
+		case "chequeCollectionRegister": {
+			List<CollectionRegisterTable> fetchChequeCollectionData = registerService.fetchChequeCollectionData(month, officeName);
+			data.setChequeCollectionRegister(fetchChequeCollectionData);
+			return data;
+		}
+		case "chequeIssueRegister": {
+			List<CollectionRegisterTable> fetchChequeIssueData = registerService.fetchChequeIssueData(month, officeName);
+			data.setChequeIssueRegister(fetchChequeIssueData);
 			return data;
 		}
 		default:
@@ -302,7 +314,7 @@ public class BillsAccountsHandler {
 			@RequestParam(required = false) String officeName, @RequestParam(required = false) String district,
 			@RequestParam(required = false) String month, @RequestHeader("Authorization") String jwt,
 			@RequestParam(required = false) String subHead, @RequestParam(required = false) String ifmsId,
-			@RequestParam(required = false) String firmType,
+			@RequestParam(required = false) String firmType, @RequestParam(required = false) String supplierName,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate)
 			throws Exception {
@@ -331,13 +343,16 @@ public class BillsAccountsHandler {
 			data.setNameList(masterService.getProductDataHandler(jwt).stream().map(item -> item.getSupplierName())
 					.collect(Collectors.toList()));
 			List<CashChittaTable> fetchSundryCreditorsData = registerService.fetchSundryCreditorsData(officeName, month,
-					subHead);
+					subHead, supplierName);
 			data.setSundryCreditorsRegister(fetchSundryCreditorsData);
 			data.setOb(sundryDebtorsAndCreditorsService.calculateSCrObValue(month, subHead, officeName));
 			return data;
 		}
 		case "supplierAdvanceRegister": {
-			List<CashChittaTable> fetchSupplierAdvanceData = registerService.fetchSupplierAdvanceData(month);
+			data.setNameList(masterService.getProductDataHandler(jwt).stream().map(item -> item.getSupplierName())
+					.collect(Collectors.toList()));
+			List<CashChittaTable> fetchSupplierAdvanceData = registerService.fetchSupplierAdvanceData(month,
+					supplierName);
 			data.setSupplierAdvanceRegister(fetchSupplierAdvanceData);
 			return data;
 		}

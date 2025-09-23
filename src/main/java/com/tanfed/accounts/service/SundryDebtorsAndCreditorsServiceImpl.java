@@ -155,7 +155,8 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	public Double calculateSDrObValue(String month, String subHead, String officeName) {
 		List<SundryDrOb> sdrOb = sundryDrObRepo.findAll();
 		if (month.equals("APRIL 2025")) {
-			return sdrOb.stream().filter(item -> item.getSubHead().equals(subHead))
+			return sdrOb.stream()
+					.filter(item -> item.getSubHead().equals(subHead) && item.getOfficeName().equals(officeName))
 					.mapToDouble(item -> item.getAmount()).sum();
 		} else {
 			return prevSundryDrCrTableData(month, subHead, officeName, "Dr").getCb();
@@ -166,7 +167,8 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	public Double calculateSCrObValue(String month, String subHead, String officeName) {
 		List<SundryCrOb> scrOb = sundryCrObRepo.findAll();
 		if (month.equals("APRIL 2025")) {
-			return scrOb.stream().filter(item -> item.getSubHead().equals(subHead))
+			return scrOb.stream()
+					.filter(item -> item.getSubHead().equals(subHead) && item.getOfficeName().equals(officeName))
 					.mapToDouble(item -> item.getAmount()).sum();
 		} else {
 			return prevSundryDrCrTableData(month, subHead, officeName, "Cr").getCb();

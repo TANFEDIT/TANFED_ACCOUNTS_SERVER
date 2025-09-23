@@ -292,12 +292,14 @@ public class BillsAccountsHandler {
 			return data;
 		}
 		case "chequeCollectionRegister": {
-			List<CollectionRegisterTable> fetchChequeCollectionData = registerService.fetchChequeCollectionData(month, officeName);
+			List<CollectionRegisterTable> fetchChequeCollectionData = registerService.fetchChequeCollectionData(month,
+					officeName);
 			data.setChequeCollectionRegister(fetchChequeCollectionData);
 			return data;
 		}
 		case "chequeIssueRegister": {
-			List<CollectionRegisterTable> fetchChequeIssueData = registerService.fetchChequeIssueData(month, officeName);
+			List<CollectionRegisterTable> fetchChequeIssueData = registerService.fetchChequeIssueData(month,
+					officeName);
 			data.setChequeIssueRegister(fetchChequeIssueData);
 			return data;
 		}
@@ -332,7 +334,9 @@ public class BillsAccountsHandler {
 			List<CashChittaTable> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
 					subHead, ifmsId, firmType);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);
-			data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName));
+			if (month != null && !month.isEmpty() && subHead != null && !subHead.isEmpty()) {
+				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName));
+			}
 			return data;
 		}
 		case "sundryCreditorsRegister": {

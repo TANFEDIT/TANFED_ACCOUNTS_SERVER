@@ -52,7 +52,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 			} while (journalVoucherRepo.findByJvNo(jvNo).isPresent());
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
-			obj.setJvNo(jvNo);
+			obj.setVoucherNo(jvNo);
 			journalVoucherRepo.save(obj);
 			return new ResponseEntity<>("JV Created Successfully\n JV Number : " + jvNo, HttpStatus.CREATED);
 		} catch (Exception e) {
@@ -71,7 +71,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 					jvNo = "JV" + codeGenerator.voucherNoGenerator();
 				} while (journalVoucherRepo.findByJvNo(jvNo).isPresent());
 				jvNoList.add(jvNo);
-				item.setJvNo(jvNo);
+				item.setVoucherNo(jvNo);
 				item.setEmpId(Arrays.asList(empId));
 				item.setIfmsId(
 						obj.getTableData().stream().map(itemData -> itemData.getIfmsId()).collect(Collectors.toList()));
@@ -127,7 +127,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 	@Override
 	public List<String> getJvNoByOfficeName(String officeName) throws Exception {
 		try {
-			return journalVoucherRepo.findByOfficeName(officeName).stream().map(JournalVoucher::getJvNo)
+			return journalVoucherRepo.findByOfficeName(officeName).stream().map(JournalVoucher::getVoucherNo)
 					.collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new Exception(e);

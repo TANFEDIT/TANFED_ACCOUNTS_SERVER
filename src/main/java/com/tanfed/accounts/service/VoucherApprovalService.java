@@ -129,6 +129,9 @@ public class VoucherApprovalService {
 				adjustmentReceiptVoucherService.updateClosingBalance(arv);
 				if (arv.getVoucherFor().equals("Non-CC Invoice") || arv.getVoucherFor().equals("ICM")) {
 					sundryDebtorsAndCreditorsService.updateSdrAdjReceipt(arv, jwt);
+					if (arv.getVoucherFor().equals("Non-CC Invoice")) {
+						inventryService.approveNonCCInvoiceHandler(arv.getIcmInvNo(), jwt);
+					}
 				}
 			}
 			if (obj.getVoucherStatus().equals("Rejected")) {

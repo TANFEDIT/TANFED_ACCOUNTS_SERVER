@@ -38,6 +38,9 @@ public interface InventryService {
 	
 	@PutMapping("/api/inventry/revertnonccinvoice")
 	public void revertNonCCInvoiceHandler(@RequestParam AdjustmentReceiptVoucher adjv , @RequestHeader("Authorization") String jwt) throws Exception;
+
+	@PutMapping("/api/inventry/approvenonccinvoice")
+	public void approveNonCCInvoiceHandler(@RequestParam String invoiceNo, @RequestHeader("Authorization") String jwt) throws Exception;
 	
 	@PutMapping("/api/inventry/revertjvingrn/{grnNo}")
 	public void revertJvHandler(@PathVariable String grnNo, @RequestHeader("Authorization") String jwt) throws Exception;

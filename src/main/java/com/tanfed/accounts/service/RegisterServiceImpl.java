@@ -146,7 +146,7 @@ public class RegisterServiceImpl implements RegisterService {
 									.mapToDouble(sum -> sum.getAmount()).sum();
 							Double credit = item.getRows().stream().filter(data -> data.getDrOrCr().equals("Cr"))
 									.mapToDouble(sum -> sum.getAmount()).sum();
-							return new JournalRegisterTable(item.getJvNo(), item.getJvDate(), item.getRows(), debit,
+							return new JournalRegisterTable(item.getVoucherNo(), item.getJvDate(), item.getRows(), debit,
 									credit, item.getNarration());
 						}).collect(Collectors.toList());
 			} else {
@@ -216,7 +216,7 @@ public class RegisterServiceImpl implements RegisterService {
 								.filter(data -> data.getDrOrCr().equals("Cr")
 										&& (data.getSubHead().equals(subHead) || subHead.isEmpty()))
 								.mapToDouble(sum -> sum.getAmount()).sum();
-						return new CashChittaTable(item.getJvNo(), item.getJvDate(), null, null, item.getNarration(),
+						return new CashChittaTable(item.getVoucherNo(), item.getJvDate(), null, null, item.getNarration(),
 								credit, debit, "JV");
 					}).collect(Collectors.toList()));
 			table.sort(Comparator.comparing(CashChittaTable::getDate));
@@ -298,7 +298,7 @@ public class RegisterServiceImpl implements RegisterService {
 					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
 							&& item.getJvFor().equals("Sales Jv") && item.getJvType().equals("net")
 							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty()))
-					.map(item -> new CashChittaTable(item.getJvNo(), item.getJvDate(),
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
 							joinJvHead(item.getRows().stream()
 									.filter(data -> data.getDrOrCr().equals("Dr")
 											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
@@ -367,7 +367,7 @@ public class RegisterServiceImpl implements RegisterService {
 							&& item.getJvFor().equals("Purchase JV") && item.getJvType()
 									.equals("net")
 							&& (supplierName.isEmpty() || supplierName.equals(item.getSupplierName())))
-					.map(item -> new CashChittaTable(item.getJvNo(), item.getJvDate(),
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
 							joinJvHead(item.getRows().stream()
 									.filter(data -> data.getDrOrCr().equals("Cr") && data.getSubHead().equals(subHead)
 											&& data.getMainHead().equals("H.O a/c - Sundry Creditors"))

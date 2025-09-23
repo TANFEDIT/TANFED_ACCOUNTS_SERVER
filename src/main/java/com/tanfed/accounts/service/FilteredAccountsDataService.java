@@ -346,6 +346,9 @@ public class FilteredAccountsDataService {
 	@Autowired
 	private SundryDrObRepo sundryDrObRepo;
 
+	@Autowired
+	private ReconciliationEntryRepo reconciliationEntryRepo;
+
 	public Vouchers getBillsAccountsFilteredData(String formType, LocalDate fromDate, LocalDate toDate,
 			String officeName, String voucherStatus, String jwt) throws Exception {
 		Vouchers data = new Vouchers();
@@ -489,6 +492,41 @@ public class FilteredAccountsDataService {
 				}
 			}
 			data.setSundryDrOb(sundryDrOb);
+			return data;
+		}
+		case "reconciliationEntry": {
+			List<ReconciliationEntry> reconEntry = new ArrayList<ReconciliationEntry>();
+			List<ReconciliationEntry> filteredLst = null;
+
+			if (fromDate != null && toDate != null) {
+				filteredLst = reconciliationEntryRepo.findByOfficeName(officeName).stream()
+						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
+								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
+						.collect(Collectors.toList());
+			}
+			if (voucherStatus.equals("Pending")) {
+				if (fromDate == null && toDate == null) {
+					reconEntry.addAll(reconciliationEntryRepo.findPendingDataByOfficeName(officeName));
+				} else if (fromDate != null && toDate != null) {
+					reconEntry.addAll(filteredLst);
+				}
+			}
+			if (voucherStatus.equals("Approved")) {
+				if (fromDate == null && toDate == null) {
+					reconEntry.addAll(reconciliationEntryRepo.findApprovedDataByOfficeName(officeName));
+				} else if (fromDate != null && toDate != null) {
+					reconEntry.addAll(filteredLst);
+				}
+			}
+			if (voucherStatus.isEmpty()) {
+				if (fromDate == null && toDate == null) {
+					reconEntry.addAll(reconciliationEntryRepo.findPendingDataByOfficeName(officeName));
+					reconEntry.addAll(reconciliationEntryRepo.findApprovedDataByOfficeName(officeName));
+				} else if (fromDate != null && toDate != null) {
+					reconEntry.addAll(filteredLst);
+				}
+			}
+			data.setReconciliationEntry(reconEntry);
 			return data;
 		}
 		default:

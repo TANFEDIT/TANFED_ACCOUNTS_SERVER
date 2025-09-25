@@ -12,7 +12,7 @@ import com.tanfed.accounts.entity.JournalVoucher;
 @Repository
 public interface JournalVoucherRepo extends JpaRepository<JournalVoucher, Long> {
 
-	public Optional<JournalVoucher> findByJvNo(String JvNo);
+	public Optional<JournalVoucher> findByVoucherNo(String JvNo);
 	
 	public List<JournalVoucher> findByOfficeName(String officeName);
 

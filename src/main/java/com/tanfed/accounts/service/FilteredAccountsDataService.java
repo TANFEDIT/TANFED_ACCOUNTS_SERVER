@@ -263,7 +263,7 @@ public class FilteredAccountsDataService {
 			}
 			if (voucherNo != null && !voucherNo.isEmpty()) {
 
-				journalVouchers.add(journalVoucherRepo.findByJvNo(voucherNo).get());
+				journalVouchers.add(journalVoucherRepo.findByVoucherNo(voucherNo).get());
 			} else {
 				if (voucherStatus.equals("Pending")) {
 					if (fromDate == null && toDate == null) {

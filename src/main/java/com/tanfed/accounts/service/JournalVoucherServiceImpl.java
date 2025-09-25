@@ -49,7 +49,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 			String jvNo;
 			do {
 				jvNo = "JV" + codeGenerator.voucherNoGenerator();
-			} while (journalVoucherRepo.findByJvNo(jvNo).isPresent());
+			} while (journalVoucherRepo.findByVoucherNo(jvNo).isPresent());
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(jvNo);
@@ -69,7 +69,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 				String jvNo;
 				do {
 					jvNo = "JV" + codeGenerator.voucherNoGenerator();
-				} while (journalVoucherRepo.findByJvNo(jvNo).isPresent());
+				} while (journalVoucherRepo.findByVoucherNo(jvNo).isPresent());
 				jvNoList.add(jvNo);
 				item.setVoucherNo(jvNo);
 				item.setEmpId(Arrays.asList(empId));
@@ -103,7 +103,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 	@Override
 	public JournalVoucher getJvByJvNo(String jvNo) throws Exception {
 		try {
-			JournalVoucher journalVoucher = journalVoucherRepo.findByJvNo(jvNo).get();
+			JournalVoucher journalVoucher = journalVoucherRepo.findByVoucherNo(jvNo).get();
 
 			if (journalVoucher == null) {
 				throw new FileNotFoundException("No data found");

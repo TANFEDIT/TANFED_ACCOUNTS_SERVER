@@ -241,7 +241,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 		return new SalesJvTableData(null, invoice.getInvoiceNo(), invoice.getDate(), invoice.getNameOfInstitution(),
 				invoice.getDistrict(), invoice.getDistrict(), qty, roundToTwoDecimalPlaces(basic + cgst + sgst),
 				roundToTwoDecimalPlaces(basic), roundToTwoDecimalPlaces(cgst), roundToTwoDecimalPlaces(sgst),
-				roundToTwoDecimalPlaces(margin));
+				roundToTwoDecimalPlaces(margin), null);
 	}
 
 	private static double roundToTwoDecimalPlaces(double value) {

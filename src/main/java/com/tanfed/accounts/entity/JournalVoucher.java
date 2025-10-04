@@ -3,6 +3,8 @@ package com.tanfed.accounts.entity;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -55,6 +57,12 @@ public class JournalVoucher {
 	
 	private Double derivedTotal;
 	
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "jv")
 	private List<JV_Array_Data> rows;
+
+	@ManyToOne
+	@JoinColumn(name = "s_jv")
+	@JsonIgnore
+	private SalesJvTable s_jv;
+	
 }

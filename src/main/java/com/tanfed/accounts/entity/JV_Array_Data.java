@@ -1,5 +1,7 @@
 package com.tanfed.accounts.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,4 +29,9 @@ public class JV_Array_Data {
 	
 	@Column
 	private String subHead;
+	
+	@ManyToOne
+	@JoinColumn(name = "jv")
+	@JsonIgnore
+	private JournalVoucher jv;
 }

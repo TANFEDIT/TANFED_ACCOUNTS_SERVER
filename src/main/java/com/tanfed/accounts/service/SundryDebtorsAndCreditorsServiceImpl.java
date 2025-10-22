@@ -300,6 +300,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			String prevMonth = prevYearMonth.getMonth().toString() + " " + prevYearMonth.getYear();
 			sundryDrCrTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(prevMonth, subHead,
 					officeName, drCr);
+			if (n == 100) {
+				break;
+			}
 		} while (sundryDrCrTable == null);
 
 		return sundryDrCrTable;
@@ -310,25 +313,26 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				subHead, officeName, drCr);
 		if (sundryDrCrTable == null) {
 			sundryDrCrTable = prevSundryDrCrTableData(month, subHead, officeName, drCr);
+			Double cb = sundryDrCrTable.getCb() == null ? 0.0 : sundryDrCrTable.getCb();
 			switch (type) {
 			case "debit": {
 				sundryDrCrTableRepo.save(new SundryDrCrTable(null, drCr, month, subHead, officeName, amount, 0.0, 0.0,
-						0.0, sundryDrCrTable.getCb() + amount));
+						0.0, cb + amount));
 				break;
 			}
 			case "otherDebit": {
 				sundryDrCrTableRepo.save(new SundryDrCrTable(null, drCr, month, subHead, officeName, 0.0, amount, 0.0,
-						0.0, sundryDrCrTable.getCb() + amount));
+						0.0, cb + amount));
 				break;
 			}
 			case "credit": {
 				sundryDrCrTableRepo.save(new SundryDrCrTable(null, drCr, month, subHead, officeName, 0.0, 0.0, amount,
-						0.0, sundryDrCrTable.getCb() - amount));
+						0.0, cb - amount));
 				break;
 			}
 			case "otherCredit": {
 				sundryDrCrTableRepo.save(new SundryDrCrTable(null, drCr, month, subHead, officeName, 0.0, 0.0, 0.0,
-						amount, sundryDrCrTable.getCb() - amount));
+						amount, cb - amount));
 				break;
 			}
 			default:

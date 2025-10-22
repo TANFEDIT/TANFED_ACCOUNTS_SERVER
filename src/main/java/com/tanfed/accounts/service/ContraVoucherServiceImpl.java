@@ -32,14 +32,14 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 	private PaymentVoucherService paymentVoucherService;
 
 	@Override
-	public DataForContraEntry getDataForContraEntry(String officeName, String contraType, LocalDate fromDate,
-			LocalDate toDate, String fromNo, String toNo) throws Exception {
+	public DataForContraEntry getDataForContraEntry(String officeName, String contraType, LocalDate date, String fromNo,
+			String toNo) throws Exception {
 		try {
 			DataForContraEntry data = new DataForContraEntry();
 			if (officeName != null && !officeName.isEmpty()) {
 				if (contraType != null && contraType.equals("Bank to Cash")) {
 					data.setFromNoList(paymentVoucherService.getVoucherByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
+							.filter(item -> item.getDate().equals(date)
 									&& !item.getPvType().equals("Cash Payment Voucher")
 									&& item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
 									&& item.getMainHead().equals("H.O a/c - Other")
@@ -47,8 +47,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));
 
 					data.setToNoList(cashReceiptVoucherService.getVouchersByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
-									&& item.getMainHead().equals("H.O a/c - Other")
+							.filter(item -> item.getDate().equals(date) && item.getMainHead().equals("H.O a/c - Other")
 									&& item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
 									&& item.getSubHead().equals("CASH ACCOUNT"))
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));
@@ -66,7 +65,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 				}
 				if (contraType != null && contraType.equals("Cash to Bank")) {
 					data.setFromNoList(paymentVoucherService.getVoucherByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
+							.filter(item -> item.getDate().equals(date)
 									&& item.getPvType().equals("Cash Payment Voucher")
 									&& item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
 									&& item.getMainHead().equals("H.O a/c - Other")
@@ -74,8 +73,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));
 
 					data.setToNoList(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
-									&& item.getMainHead().equals("H.O a/c - Other")
+							.filter(item -> item.getDate().equals(date) && item.getMainHead().equals("H.O a/c - Other")
 									&& item.getContraEntry().equals("No") && item.getSubHead().equals("BANK ACCOUNT")
 									&& item.getVoucherStatus().equals("Approved"))
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));
@@ -93,7 +91,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 				}
 				if (contraType != null && contraType.equals("Bank to Bank")) {
 					data.setFromNoList(paymentVoucherService.getVoucherByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
+							.filter(item -> item.getDate().equals(date)
 									&& !item.getPvType().equals("Cash Payment Voucher")
 									&& item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
 									&& item.getMainHead().equals("H.O a/c - Other")
@@ -101,8 +99,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));
 
 					data.setToNoList(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
-							.filter(item -> !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate)
-									&& item.getMainHead().equals("H.O a/c - Other")
+							.filter(item -> item.getDate().equals(date) && item.getMainHead().equals("H.O a/c - Other")
 									&& item.getContraEntry().equals("No") && item.getSubHead().equals("BANK ACCOUNT")
 									&& item.getVoucherStatus().equals("Approved"))
 							.map(item -> item.getVoucherNo()).collect(Collectors.toList()));

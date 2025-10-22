@@ -10,7 +10,7 @@ import com.tanfed.accounts.response.DataForContraEntry;
 
 public interface ContraVoucherService {
 
-	public DataForContraEntry getDataForContraEntry(String officeName, String contraType, LocalDate fromDate, LocalDate toDate, String pvNo, String cashAdjNo) throws Exception;
+	public DataForContraEntry getDataForContraEntry(String officeName, String contraType, LocalDate date, String pvNo, String cashAdjNo) throws Exception;
 	
 	public ResponseEntity<String> updateContraEntry(String fromNo, String toNo, String narration) throws Exception;
 	

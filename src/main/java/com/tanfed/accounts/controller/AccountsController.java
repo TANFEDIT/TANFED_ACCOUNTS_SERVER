@@ -295,10 +295,9 @@ public class AccountsController {
 	@GetMapping("/fetchdataforcontra")
 	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName,
 			@RequestParam String contraType,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
 			@RequestParam String fromNo, @RequestParam String toNo) throws Exception {
-		return contraVoucher.getDataForContraEntry(officeName, contraType, fromDate, toDate, fromNo, toNo);
+		return contraVoucher.getDataForContraEntry(officeName, contraType, date, fromNo, toNo);
 	}
 
 	@GetMapping("/accob/validate/{officeName}")

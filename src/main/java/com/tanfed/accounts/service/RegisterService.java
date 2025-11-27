@@ -25,7 +25,7 @@ public interface RegisterService {
 	public List<CashChittaTable> fetchGeneralLedgerData(String officeName, String month, String jwt) throws Exception;
 
 	public List<CashChittaTable> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
-			String firmType) throws Exception;
+			String firmType, String jwt) throws Exception;
 
 	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead, String supplierName)
 			throws Exception;

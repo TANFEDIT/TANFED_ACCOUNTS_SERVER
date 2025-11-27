@@ -9,9 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.tanfed.accounts.model.Office;
 
 
-
-
-
 @FeignClient(name = "USER-SERVICE", url = "${USER_SERVICE_URL}")
 public interface UserService {
 	

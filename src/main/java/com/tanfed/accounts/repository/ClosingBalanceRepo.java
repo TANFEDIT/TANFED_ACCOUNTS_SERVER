@@ -12,4 +12,6 @@ public interface ClosingBalanceRepo extends JpaRepository<ClosingBalanceTable, L
 
 	public List<ClosingBalanceTable> findByOfficeNameAndDate(String officeName, LocalDate date);
 
+	public List<ClosingBalanceTable> findByOfficeName(String officeName);
+
 }

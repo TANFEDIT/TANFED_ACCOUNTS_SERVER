@@ -114,6 +114,13 @@ public class CashReceiptVoucherServiceImpl implements CashReceiptVoucherService 
 				cb.get(0).setCashBalance(cb.get(0).getCashBalance() + obj.getReceivedAmount());
 				closingBalanceRepo.save(cb.get(0));
 			}
+			List<ClosingBalanceTable> cbData = closingBalanceRepo.findByOfficeName(obj.getOfficeName()).stream()
+					.filter(item -> item.getCashBalance() != null && item.getDate().isAfter(obj.getDate()))
+					.collect(Collectors.toList());
+			cbData.forEach(item -> {
+				item.setCashBalance(item.getCashBalance() + obj.getReceivedAmount());
+			});
+			closingBalanceRepo.saveAll(cbData);
 		} catch (Exception e) {
 			throw new Exception(e);
 		}

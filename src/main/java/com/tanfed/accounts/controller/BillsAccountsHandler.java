@@ -332,7 +332,7 @@ public class BillsAccountsHandler {
 			data.setIfmsIdList(buyerData.stream().filter(item -> item.getDistrict().equals(district))
 					.map(item -> item.getIfmsIdNo()).collect(Collectors.toList()));
 			List<CashChittaTable> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
-					subHead, ifmsId, firmType);
+					subHead, ifmsId, firmType, jwt);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);
 			if (month != null && !month.isEmpty() && subHead != null && !subHead.isEmpty()) {
 				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName));

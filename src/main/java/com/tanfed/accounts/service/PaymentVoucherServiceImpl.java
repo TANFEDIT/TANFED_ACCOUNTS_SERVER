@@ -246,8 +246,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								.map(BankInfo::getBranchName).collect(Collectors.toList()).get(0));
 
 						List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName)
-								.stream().filter(item -> item.getPvType().equals(pvType))
-								.collect(Collectors.toList());
+								.stream().filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
 						if (!pendingPvs.isEmpty()) {
 							throw new Exception("Approve previous Payment voucher!");
 						}
@@ -280,8 +279,8 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				int n = 0;
 				do {
 					LocalDate previousDate = date.minusDays(n++);
-					obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream().filter(
-							item -> item.getAccNo() != null && item.getAccNo().equals(Long.valueOf(accountNo)))
+					obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
+							.filter(item -> item.getAccNo() != null && item.getAccNo().equals(Long.valueOf(accountNo)))
 							.collect(Collectors.toList());
 				} while (obData.isEmpty());
 				return obData.get(0).getBankBalance();
@@ -319,6 +318,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 					cb.get(0).setCashBalance(cb.get(0).getCashBalance() - obj.getAmount());
 					closingBalanceRepo.save(cb.get(0));
 				}
+				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "cash", null);
 			} else {
 				List<ClosingBalanceTable> cb = closingBalanceRepo
 						.findByOfficeNameAndDate(obj.getOfficeName(), obj.getDate()).stream()
@@ -346,9 +346,31 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 					cb.get(0).setBankBalance(cb.get(0).getBankBalance() - obj.getAmount());
 					closingBalanceRepo.save(cb.get(0));
 				}
+				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "bank", obj.getAccountNo());
 			}
 		} catch (Exception e) {
 			throw new Exception(e);
+		}
+	}
+
+	private void updateCbAfterDate(String officeName, LocalDate date, Double amount, String type, Long accountNo) {
+		if (type.equals("cash")) {
+			List<ClosingBalanceTable> cbData = closingBalanceRepo.findByOfficeName(officeName).stream()
+					.filter(item -> item.getCashBalance() != null && item.getDate().isAfter(date))
+					.collect(Collectors.toList());
+			cbData.forEach(item -> {
+				item.setCashBalance(item.getCashBalance() - amount);
+			});
+			closingBalanceRepo.saveAll(cbData);
+		} else {
+			List<ClosingBalanceTable> cbData = closingBalanceRepo
+					.findByOfficeName(officeName).stream().filter(item -> item.getCashBalance() == null
+							&& item.getAccNo().equals(accountNo) && item.getDate().isAfter(date))
+					.collect(Collectors.toList());
+			cbData.forEach(item -> {
+				item.setBankBalance(item.getBankBalance() - amount);
+			});
+			closingBalanceRepo.saveAll(cbData);
 		}
 	}
 

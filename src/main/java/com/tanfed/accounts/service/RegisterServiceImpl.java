@@ -16,6 +16,7 @@ import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
+import com.tanfed.accounts.model.BuyerFirmInfo;
 import com.tanfed.accounts.model.CollectionRegisterTable;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
@@ -146,8 +147,8 @@ public class RegisterServiceImpl implements RegisterService {
 									.mapToDouble(sum -> sum.getAmount()).sum();
 							Double credit = item.getRows().stream().filter(data -> data.getDrOrCr().equals("Cr"))
 									.mapToDouble(sum -> sum.getAmount()).sum();
-							return new JournalRegisterTable(item.getVoucherNo(), item.getJvDate(), item.getRows(), debit,
-									credit, item.getNarration());
+							return new JournalRegisterTable(item.getVoucherNo(), item.getJvDate(), item.getRows(),
+									debit, credit, item.getNarration());
 						}).collect(Collectors.toList());
 			} else {
 				return null;
@@ -216,8 +217,8 @@ public class RegisterServiceImpl implements RegisterService {
 								.filter(data -> data.getDrOrCr().equals("Cr")
 										&& (data.getSubHead().equals(subHead) || subHead.isEmpty()))
 								.mapToDouble(sum -> sum.getAmount()).sum();
-						return new CashChittaTable(item.getVoucherNo(), item.getJvDate(), null, null, item.getNarration(),
-								credit, debit, "JV");
+						return new CashChittaTable(item.getVoucherNo(), item.getJvDate(), null, null,
+								item.getNarration(), credit, debit, "JV");
 					}).collect(Collectors.toList()));
 			table.sort(Comparator.comparing(CashChittaTable::getDate));
 			return table;
@@ -291,13 +292,14 @@ public class RegisterServiceImpl implements RegisterService {
 
 	@Override
 	public List<CashChittaTable> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
-			String firmType) throws Exception {
+			String firmType, String jwt) throws Exception {
 		try {
 			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
 			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
 					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
 							&& item.getJvFor().equals("Sales Jv") && item.getJvType().equals("net")
-							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty()))
+							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty())
+							&& validateFirmTypeByIfmsId(item.getIfmsId().get(0), firmType, jwt))
 					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
 							joinJvHead(item.getRows().stream()
 									.filter(data -> data.getDrOrCr().equals("Dr")
@@ -325,7 +327,8 @@ public class RegisterServiceImpl implements RegisterService {
 									.equals(month)
 							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
 							&& item.getSubHead().equals(subHead)
-							&& (item.getIfmsIdNo().equals(ifmsId) || ifmsId.isEmpty()))
+							&& (item.getIfmsIdNo().equals(ifmsId) || ifmsId.isEmpty())
+							&& validateFirmTypeByIfmsId(item.getIfmsIdNo(), firmType, jwt))
 					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
 							item.getSubHead(), item.getNarration(), item.getReceivedAmount(), null, "ICM ADJ"))
 					.collect(Collectors.toList()));
@@ -336,7 +339,8 @@ public class RegisterServiceImpl implements RegisterService {
 									.equals(month)
 							&& (item.getIfmsId().equals(ifmsId) || ifmsId.isEmpty())
 							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
-							&& item.getSubHead().equals(subHead))
+							&& item.getSubHead().equals(subHead)
+							&& validateFirmTypeByIfmsId(item.getIfmsId(), firmType, jwt))
 					.map(item -> {
 						double credit = 0.0, debit = 0.0;
 						if (item.getIdNo().startsWith("DN")) {
@@ -350,6 +354,16 @@ public class RegisterServiceImpl implements RegisterService {
 			return list;
 		} catch (Exception e) {
 			throw new Exception(e);
+		}
+	}
+
+	private Boolean validateFirmTypeByIfmsId(String ifmsId, String firmType, String jwt) {
+		try {
+			BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt, ifmsId);
+			return buyerFirmInfo.getFirmType().equals(firmType) ? true : false;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
 		}
 	}
 

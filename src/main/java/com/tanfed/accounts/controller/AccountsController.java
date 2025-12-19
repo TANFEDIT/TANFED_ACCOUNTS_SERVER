@@ -99,6 +99,9 @@ public class AccountsController {
 				obj.setIdNo(grnNo);
 				ResponseEntity<String> saveJournalVoucher = journalVoucher.saveJournalVoucher(obj, jwt);
 				String jv = saveJournalVoucher.getBody();
+				if(jv == null){
+					return null;
+				}
 				int index = jv.indexOf("JV Number : ");
 				String jvNo = jv.substring(index + "JV Number : ".length()).trim();
 				inventryService.updateJvHandler(grnNo, jwt, jvNo);

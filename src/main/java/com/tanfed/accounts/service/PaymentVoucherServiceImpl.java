@@ -98,6 +98,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		try {
 			return paymentVoucherRepo.findByOfficeName(officeName).stream().filter(item -> {
 				return item.getPvType().equals("Cash Payment Voucher") && !item.getDate().isBefore(fromDate)
+						&& item.getVoucherStatus().equals("Approved")
 						&& !item.getDate().isAfter(toDate) && item.getPaidOn() == null;
 			}).collect(Collectors.toList());
 		} catch (Exception e) {
@@ -129,7 +130,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			return paymentVoucherRepo.findByOfficeName(officeName).stream().filter(item -> {
 				return item.getPvType().equals("Online Payment Voucher") && !item.getDate().isBefore(fromDate)
 						&& !item.getDate().isAfter(toDate) && item.getUtrNumber() == null && item.getStatus() == null
-						&& item.getOnlineDate() == null;
+						&& item.getOnlineDate() == null && item.getVoucherStatus().equals("Approved");
 			}).collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new Exception(e);
@@ -181,6 +182,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				return item.getPvType().equals("Cheque Payment Voucher") && !item.getDate().isBefore(fromDate)
 						&& !item.getDate().isAfter(toDate) && item.getChequeNumber() == null
 						&& item.getChequeDate() == null && item.getIssueBankName() == null
+						&& item.getVoucherStatus().equals("Approved")
 						&& item.getSettledDate() == null && item.getStatus() == null;
 			}).collect(Collectors.toList());
 		} catch (Exception e) {

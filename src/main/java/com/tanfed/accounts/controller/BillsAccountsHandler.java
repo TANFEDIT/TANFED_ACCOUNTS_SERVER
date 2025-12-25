@@ -138,7 +138,9 @@ public class BillsAccountsHandler {
 			if (fromDate.equals(LocalDate.of(2025, 4, 1))) {
 				List<OpeningBalance> openingBalance = openingBalanceRepo
 						.findByOfficeNameAndOpeningBalanceFor(officeName, "Cash").stream()
-						.filter(item -> item.getCashBalanceDate().equals(fromDate)).collect(Collectors.toList());
+						.filter(item -> item.getCashBalanceDate().equals(fromDate)
+								&& item.getVoucherStatus().equals("Approved"))
+						.collect(Collectors.toList());
 
 				if (!openingBalance.isEmpty()) {
 					ob = openingBalance.get(0).getAmount();
@@ -152,6 +154,8 @@ public class BillsAccountsHandler {
 					LocalDate previousDate = fromDate.minusDays(n++);
 					obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
 							.filter(item -> item.getCashBalance() != null).collect(Collectors.toList());
+					if (n == 365)
+						break;
 				} while (obData.isEmpty());
 				ob = obData.get(0).getCashBalance();
 			}
@@ -171,7 +175,9 @@ public class BillsAccountsHandler {
 				if (date.equals(LocalDate.of(2025, 4, 1))) {
 					List<OpeningBalance> openingBalance = openingBalanceRepo
 							.findByOfficeNameAndOpeningBalanceFor(officeName, "Cash").stream()
-							.filter(item -> item.getCashBalanceDate().equals(date)).collect(Collectors.toList());
+							.filter(item -> item.getCashBalanceDate().equals(date)
+									&& item.getVoucherStatus().equals("Approved"))
+							.collect(Collectors.toList());
 
 					if (!openingBalance.isEmpty()) {
 						ob = openingBalance.get(0).getAmount();
@@ -185,6 +191,8 @@ public class BillsAccountsHandler {
 						LocalDate previousDate = date.minusDays(n++);
 						obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
 								.filter(item -> item.getCashBalance() != null).collect(Collectors.toList());
+						if (n == 365)
+							break;
 					} while (obData.isEmpty());
 					ob = obData.get(0).getCashBalance();
 				}
@@ -206,7 +214,9 @@ public class BillsAccountsHandler {
 				if (date.equals(LocalDate.of(2025, 4, 1))) {
 					List<OpeningBalance> openingBalance = openingBalanceRepo
 							.findByOfficeNameAndOpeningBalanceFor(officeName, "Bank").stream()
-							.filter(item -> item.getBankBalanceDate().equals(date)).collect(Collectors.toList());
+							.filter(item -> item.getBankBalanceDate().equals(date)
+									&& item.getVoucherStatus().equals("Approved"))
+							.collect(Collectors.toList());
 					if (!openingBalance.isEmpty()) {
 						obCa = openingBalance.stream().filter(item -> item.getAccountType().equals("Current A/c"))
 								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
@@ -252,7 +262,8 @@ public class BillsAccountsHandler {
 				if (date.equals(LocalDate.of(2025, 4, 1))) {
 					List<OpeningBalance> openingBalance = openingBalanceRepo.findByOfficeName(officeName).stream()
 							.filter(item -> date.equals(item.getBankBalanceDate())
-									|| date.equals(item.getCashBalanceDate()))
+									|| date.equals(item.getCashBalanceDate())
+											&& item.getVoucherStatus().equals("Approved"))
 							.collect(Collectors.toList());
 					if (!openingBalance.isEmpty()) {
 						ob = openingBalance.stream().filter(item -> item.getDayBookAmount() != null)
@@ -263,7 +274,7 @@ public class BillsAccountsHandler {
 						throw new RuntimeException("Opening balance not found for " + date);
 					}
 				} else {
-					ob = fetchObForGeneralLedger(date,officeName);
+					ob = fetchObForGeneralLedger(date, officeName);
 				}
 				data.setOb(ob);
 				data.setCb(ob + generalLedgerData.stream().mapToDouble(item -> item.getReceivedAmount()).sum()
@@ -296,6 +307,8 @@ public class BillsAccountsHandler {
 			obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
 					.filter(item -> item.getBankBalance() != null && item.getAccType().equals(accType))
 					.collect(Collectors.toList());
+			if (n == 365)
+				break;
 		} while (obData.isEmpty());
 		return obData.get(0).getBankBalance();
 	}
@@ -306,21 +319,23 @@ public class BillsAccountsHandler {
 		do {
 			LocalDate previousDate = date.minusDays(n++);
 			obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
-					.filter(item -> item.getBankBalance() != null)
-					.collect(Collectors.toList());
+					.filter(item -> item.getBankBalance() != null).collect(Collectors.toList());
+			if (n == 365)
+				break;
 		} while (obData.isEmpty());
 		Double ob = obData.get(0).getBankBalance();
 		int m = 1;
 		do {
 			LocalDate previousDate = date.minusDays(m++);
 			obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
-					.filter(item -> item.getCashBalance() != null)
-					.collect(Collectors.toList());
+					.filter(item -> item.getCashBalance() != null).collect(Collectors.toList());
+			if (n == 365)
+				break;
 		} while (obData.isEmpty());
 		ob += obData.get(0).getCashBalance();
 		return ob;
 	}
-	
+
 	@Autowired
 	private MasterService masterService;
 

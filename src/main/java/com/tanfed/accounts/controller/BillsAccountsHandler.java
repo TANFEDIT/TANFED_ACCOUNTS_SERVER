@@ -310,10 +310,11 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
-		if(obData.isEmpty()) {
-			throw new Exception("No Balance data found for" + accType);
+		Double balance = 0.0;
+		if (!obData.isEmpty()) {
+			balance = obData.get(0).getBankBalance();
 		}
-		return obData.get(0).getBankBalance();
+		return balance;
 	}
 
 	private Double fetchObForGeneralLedger(LocalDate date, String officeName) {
@@ -326,9 +327,8 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
-		double ob = obData.stream()
-		        .mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
-		        .sum();
+		double ob = obData.stream().mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
+				.sum();
 		int m = 1;
 		do {
 			LocalDate previousDate = date.minusDays(m++);

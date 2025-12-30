@@ -299,7 +299,7 @@ public class BillsAccountsHandler {
 		}
 	}
 
-	private Double fetchBalanceByAccType(String accType, LocalDate date, String officeName) {
+	private Double fetchBalanceByAccType(String accType, LocalDate date, String officeName) throws Exception {
 		List<ClosingBalanceTable> obData;
 		int n = 1;
 		do {
@@ -310,6 +310,9 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
+		if(obData.isEmpty()) {
+			throw new Exception("No Balance data found for" + accType);
+		}
 		return obData.get(0).getBankBalance();
 	}
 
@@ -323,7 +326,9 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
-		Double ob = obData.get(0).getBankBalance();
+		double ob = obData.stream()
+		        .mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
+		        .sum();
 		int m = 1;
 		do {
 			LocalDate previousDate = date.minusDays(m++);
@@ -358,7 +363,7 @@ public class BillsAccountsHandler {
 			data.setSubHeadList(subHeadList);
 			data.setDistrictList(buyerData.stream().map(item -> item.getDistrict()).collect(Collectors.toSet()));
 			data.setIfmsIdList(buyerData.stream().filter(item -> item.getDistrict().equals(district))
-					.map(item -> item.getIfmsIdNo()).collect(Collectors.toList()));
+					.map(item -> item.getNameOfInstitution()).collect(Collectors.toList()));
 			List<CashChittaTable> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
 					subHead, ifmsId, firmType, jwt);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);

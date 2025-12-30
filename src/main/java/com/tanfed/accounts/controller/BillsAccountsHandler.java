@@ -229,8 +229,8 @@ public class BillsAccountsHandler {
 					}
 				} else {
 					obSa = fetchBalanceByAccType("Savings A/c", date, officeName);
-					obSa = fetchBalanceByAccType("Current A/c", date, officeName);
-					obSa = fetchBalanceByAccType("Non PDS A/c", date, officeName);
+					obCa = fetchBalanceByAccType("Current A/c", date, officeName);
+					obNpa = fetchBalanceByAccType("Non PDS A/c", date, officeName);
 				}
 				data.setObSa(obSa);
 				data.setObCa(obCa);
@@ -311,10 +311,11 @@ public class BillsAccountsHandler {
 				break;
 		} while (obData.isEmpty());
 		Double balance = 0.0;
-		if (!obData.isEmpty()) {
-			balance = obData.get(0).getBankBalance();
+		if(obData.isEmpty()) {
+			return balance;
+		}else {
+			return obData.get(0).getBankBalance();			
 		}
-		return balance;
 	}
 
 	private Double fetchObForGeneralLedger(LocalDate date, String officeName) {
@@ -327,8 +328,9 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
-		double ob = obData.stream().mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
-				.sum();
+		double ob = obData.stream()
+		        .mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
+		        .sum();
 		int m = 1;
 		do {
 			LocalDate previousDate = date.minusDays(m++);

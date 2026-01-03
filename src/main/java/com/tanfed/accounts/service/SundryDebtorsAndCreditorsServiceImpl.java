@@ -149,15 +149,15 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					: calculateSDrObValue(month, subHead, officeName);
 			SundryDrCrTable sundryDrCrTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(month,
 					subHead, officeName, drCr);
-			double debit = 0.0, otherDebit = 0.0, credit = 0.0, otherCredit = 0.0, cb = 0.0;
+			double debit = 0.0, otherDebit = 0.0, credit = 0.0, otherCredit = 0.0;
 			if (sundryDrCrTable != null) {
 				debit = sundryDrCrTable.getDebit();
 				otherDebit = sundryDrCrTable.getOtherDebit();
 				credit = sundryDrCrTable.getCredit();
 				otherCredit = sundryDrCrTable.getOtherCredit();
-				cb = sundryDrCrTable.getCb();
 			}
 			Double total = ob + debit + otherDebit;
+			Double cb = total - credit - otherCredit;
 			table.add(new SundryDebtorsSubHeadTable(subHead, ob, debit, otherDebit, total, credit, otherCredit, cb));
 		});
 		return table;

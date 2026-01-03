@@ -311,10 +311,10 @@ public class BillsAccountsHandler {
 				break;
 		} while (obData.isEmpty());
 		Double balance = 0.0;
-		if(obData.isEmpty()) {
+		if (obData.isEmpty()) {
 			return balance;
-		}else {
-			return obData.get(0).getBankBalance();			
+		} else {
+			return obData.get(0).getBankBalance();
 		}
 	}
 
@@ -328,9 +328,8 @@ public class BillsAccountsHandler {
 			if (n == 365)
 				break;
 		} while (obData.isEmpty());
-		double ob = obData.stream()
-		        .mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
-		        .sum();
+		double ob = obData.stream().mapToDouble(item -> item.getBankBalance() != null ? item.getBankBalance() : 0.0)
+				.sum();
 		int m = 1;
 		do {
 			LocalDate previousDate = date.minusDays(m++);
@@ -426,4 +425,14 @@ public class BillsAccountsHandler {
 		return openingBalanceService.billsAccObValidate(officeName);
 	}
 
+	@PutMapping("/updatefundtransfered")
+	public void updateFundTransferedHandler(@RequestBody List<String> invoiceNoList) throws Exception {
+		sundryDebtorsAndCreditorsService.updateFundTransfered(invoiceNoList);
+	}
+
+	@PutMapping("/api/billsaccounts/revertfundtransfered")
+	public void revertFundTransferedHandler(@RequestBody List<String> invoiceNoList,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		sundryDebtorsAndCreditorsService.revertFundTransfered(invoiceNoList);
+	}
 }

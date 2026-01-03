@@ -35,7 +35,15 @@ public interface SundryDebtorsAndCreditorsService {
 	public Double calculateSCrObValue(String month, String subHead, String officeName);
 
 	public DataForIC fetchDataForIC(String officeName, String activity, String collectionProcess, String jwt,
-			LocalDate fromDate, LocalDate toDate, String ccbBranch, LocalDate ackEntryDate) throws Exception;
+			LocalDate fromDate, LocalDate toDate, String ccbBranch, LocalDate ackEntryDate, LocalDate dueDate,
+			LocalDate addedToPresentDate, String icmNo) throws Exception;
 
 	public ResponseEntity<String> updateICData(List<InvoiceCollectionObject> obj, String jwt) throws Exception;
+
+	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(AdjustmentReceiptVoucher obj, String jwt, String type)
+			throws Exception;
+	
+	public void updateFundTransfered(List<String> invoiceNoList) throws Exception;
+
+	public void revertFundTransfered(List<String> invoiceNoList) throws Exception;
 }

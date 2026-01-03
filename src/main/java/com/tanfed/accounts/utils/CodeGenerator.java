@@ -2,14 +2,17 @@ package com.tanfed.accounts.utils;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.tanfed.accounts.entity.DebitOrCreditNote;
+import com.tanfed.accounts.entity.SundryDrOb;
 import com.tanfed.accounts.entity.SupplierAdvance;
 import com.tanfed.accounts.repository.DebitOrCreditNoteRepo;
+import com.tanfed.accounts.repository.SundryDrObRepo;
 import com.tanfed.accounts.repository.SupplierAdvanceRepo;
 
 public class CodeGenerator {
@@ -99,5 +102,26 @@ public class CodeGenerator {
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
+	}
+
+	@Autowired
+	private SundryDrObRepo sundryDrObRepo;
+	
+	public String icmNoGenerator(String officeName) {
+		int digitCounter = 0;
+		LocalDate date = LocalDate.now();
+		int year = date.getYear() % 100;
+		int month = date.getMonthValue();
+
+		String code;
+		List<SundryDrOb> sundryDrOb;
+
+		do {
+			code = String.format("%s%02d%02d%04d", "ICM", year, month, digitCounter);
+			sundryDrOb = sundryDrObRepo.findByIcmNo(code);
+			digitCounter++;
+		} while (!sundryDrOb.isEmpty());
+
+		return code;
 	}
 }

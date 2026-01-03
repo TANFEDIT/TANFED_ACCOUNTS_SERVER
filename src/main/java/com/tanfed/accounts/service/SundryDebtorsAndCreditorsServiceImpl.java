@@ -1,10 +1,13 @@
 package com.tanfed.accounts.service;
 
+import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +18,13 @@ import org.springframework.stereotype.Service;
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.BuyerFirmInfo;
+import com.tanfed.accounts.model.DataForIC;
+import com.tanfed.accounts.model.IcTableData;
 import com.tanfed.accounts.model.SundryDebtorsSubHeadTable;
 import com.tanfed.accounts.model.SupplierInfo;
 import com.tanfed.accounts.repository.*;
 import com.tanfed.accounts.response.DataForSundryDebtor;
+import com.tanfed.accounts.model.InvoiceCollectionObject;
 
 @Service
 public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCreditorsService {
@@ -143,10 +149,16 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					: calculateSDrObValue(month, subHead, officeName);
 			SundryDrCrTable sundryDrCrTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(month,
 					subHead, officeName, drCr);
-			Double total = ob + sundryDrCrTable.getDebit() + sundryDrCrTable.getOtherDebit();
-			table.add(new SundryDebtorsSubHeadTable(subHead, ob, sundryDrCrTable.getDebit(),
-					sundryDrCrTable.getOtherDebit(), total, sundryDrCrTable.getCredit(),
-					sundryDrCrTable.getOtherCredit(), sundryDrCrTable.getCb()));
+			double debit = 0.0, otherDebit = 0.0, credit = 0.0, otherCredit = 0.0, cb = 0.0;
+			if (sundryDrCrTable != null) {
+				debit = sundryDrCrTable.getDebit();
+				otherDebit = sundryDrCrTable.getOtherDebit();
+				credit = sundryDrCrTable.getCredit();
+				otherCredit = sundryDrCrTable.getOtherCredit();
+				cb = sundryDrCrTable.getCb();
+			}
+			Double total = ob + debit + otherDebit;
+			table.add(new SundryDebtorsSubHeadTable(subHead, ob, debit, otherDebit, total, credit, otherCredit, cb));
 		});
 		return table;
 	}
@@ -380,7 +392,186 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 		}
 	}
 
-//	private static double roundToTwoDecimalPlaces(double value) {
-//		return new BigDecimal(value).setScale(3, RoundingMode.HALF_UP).doubleValue();
-//	}
+	@Override
+	public DataForIC fetchDataForIC(String officeName, String activity, String collectionProcess, String jwt,
+			LocalDate fromDate, LocalDate toDate, String ccbBranch, LocalDate ackEntryDate) throws Exception {
+		try {
+			DataForIC data = new DataForIC();
+			if (officeName != null && !officeName.isEmpty()) {
+				if (activity != null && !activity.isEmpty()) {
+					List<SundryDrOb> sDrOb = sundryDrObRepo.findByOfficeName(officeName).stream().filter(
+							item -> item.getVoucherStatus().equals("Approved") && item.getActivity().equals(activity))
+							.collect(Collectors.toList());
+					if (collectionProcess.equals("invoiceAckEntry")) {
+						invoiceAckEntryData(data, officeName, sDrOb, fromDate, toDate, jwt);
+					}
+					if ("invoiceCollectionAvailable".equals(collectionProcess)) {
+						invoiceCollectionAvailableData(data, sDrOb, officeName, jwt, ccbBranch, ackEntryDate);
+					}
+					if ("presentToCCB".equals(collectionProcess)) {
+//						presentToCCBData(data, collect, invoiceType, ccbBranch, dueDate, addedToPresentDate);
+					}
+					if ("collectionUpdate".equals(collectionProcess)) {
+//						collectionUpdateData(data, collect, icmNo);
+					}
+				}
+			}
+			return data;
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	private void invoiceCollectionAvailableData(DataForIC data, List<SundryDrOb> sDrOb, String officeName, String jwt,
+			String ccbBranch, LocalDate ackEntryDate) throws Exception {
+		try {
+			List<SundryDrOb> AvlAckInvoices = sDrOb.stream().filter(temp -> {
+				return temp.getAckQty() != null && temp.getAckEntryDate() != null
+						&& temp.getAddedToPresentDate() == null;
+			}).collect(Collectors.toList());
+			Integer totalNoOfAvlAckInvoices = 0;
+			Double totalValueOfInvoices = 0.0;
+
+			Set<String> ccbBranchlst = new HashSet<String>();
+			Set<LocalDate> ackEntryDatelst = new HashSet<LocalDate>();
+
+			for (SundryDrOb o : AvlAckInvoices) {
+				totalNoOfAvlAckInvoices++;
+				if (o.getAmount() != null) {
+					totalValueOfInvoices += o.getAmount();
+				}
+				ccbBranchlst.add(o.getCcbBranch());
+				ackEntryDatelst.add(o.getAckEntryDate());
+			}
+			data.setNoOfAvlAckInvoices(totalNoOfAvlAckInvoices);
+			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setCcbBranchLst(ccbBranchlst);
+			data.setAckEntryDate(ackEntryDatelst);
+
+			if (ccbBranch != null && !ccbBranch.isEmpty()) {
+				data.setTableData(sDrOb.stream()
+						.filter(item -> item.getAckQty() != null && ccbBranch.equals(item.getCcbBranch())
+								&& item.getVoucherStatusICP1().equals("Approved")
+								&& ackEntryDate.equals(item.getAckEntryDate()) && item.getAddedToPresentDate() == null)
+						.map(item -> {
+							try {
+								return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
+										item.getNameOfInstitution(), item.getDistrict(), item.getAmount(),
+										item.getQty(), item.getCcbBranch(), null, null);
+							} catch (Exception e) {
+								e.printStackTrace();
+								return null;
+							}
+						}).collect(Collectors.toList()));
+			}
+
+			sDrOb.stream()
+					.filter(temp -> null == temp.getAddedToPresentDate() && null != temp.getVoucherStatusICP2()
+							&& !temp.getVoucherStatusICP2().equals("Approved")
+							&& temp.getCollectionMethod().equals("AdjReceipt"))
+					.map(item -> {
+						try {
+							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
+									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
+									item.getCcbBranch(), null, null);
+						} catch (Exception e) {
+							e.printStackTrace();
+							return null;
+						}
+					}).collect(Collectors.toList());
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	private void invoiceAckEntryData(DataForIC data, String officeName, List<SundryDrOb> sDrOb, LocalDate fromDate,
+			LocalDate toDate, String jwt) throws Exception {
+		try {
+			Integer totalNoOfInvoices = 0;
+			Double totalValueOfInvoices = 0.0;
+			Integer totalNoOfInvoicesAcklgd = 0;
+
+			for (SundryDrOb o : sDrOb) {
+				totalNoOfInvoices++;
+				if (o.getAmount() != null) {
+					totalValueOfInvoices += o.getAmount();
+				}
+				if (o.getAckQty() != null) {
+					totalNoOfInvoicesAcklgd++;
+				}
+			}
+			data.setTotalNoOfInvoices(totalNoOfInvoices);
+			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setTotalNoOfInvoicesAcklgd(totalNoOfInvoicesAcklgd);
+			data.setTotalNoOfInvoicesrmng(totalNoOfInvoices - totalNoOfInvoicesAcklgd);
+
+			data.setTableData(sDrOb.stream().filter(item -> {
+				Boolean dateMatch = !item.getInvoiceDate().isBefore(fromDate) && !item.getInvoiceDate().isAfter(toDate);
+				return item.getAckQty() == null && dateMatch && item.getAckEntryDate() == null;
+			}).map(item -> {
+				try {
+					BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt,
+							item.getNameOfInstitution());
+					return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
+							item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
+							buyerFirmInfo.getBranchName(), null, null);
+				} catch (Exception e) {
+					e.printStackTrace();
+					return null;
+				}
+			}).collect(Collectors.toList()));
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	@Override
+	public ResponseEntity<String> updateICData(List<InvoiceCollectionObject> obj, String jwt) throws Exception {
+		try {
+//			final String[] code = new String[1];
+//			if ("presentToCCB".equals(obj.get(0).getCollectionProcess())) {
+//				code[0] = codeGenerator.icmNoGenerator(obj.get(0).getOfficeName());
+//			}
+			obj.forEach(temp -> {
+				if ("invoiceAckEntry".equals(temp.getCollectionProcess())) {
+					SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(temp.getInvoiceNo());
+					sundryDrOb.setAckQty(temp.getAckQty());
+					sundryDrOb.setAckEntryDate(temp.getAckEntryDate());
+					sundryDrOb.setCcbBranch(temp.getCcbBranch());
+					sundryDrOb.setVoucherStatusICP1("Pending");
+					sundryDrObRepo.save(sundryDrOb);
+				}
+				if ("invoiceCollectionAvailable".equals(temp.getCollectionProcess())) {
+					SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(temp.getInvoiceNo());
+					sundryDrOb.setVoucherStatusICP2("Pending");
+					sundryDrOb.setCollectionMethod(temp.getCollectionMethod());
+
+					if (!"AdjReceipt".equals(temp.getCollectionMethod())) {
+						sundryDrOb.setAddedToPresentDate(temp.getAddedToPresentDate());
+					}
+					sundryDrObRepo.save(sundryDrOb);
+				}
+//				if ("presentToCCB".equals(temp.getCollectionProcess())) {
+//					Invoice invoice = invoiceRepo.findByInvoiceNo(temp.getInvoiceNo()).get();
+//					invoice.setVoucherStatusICP3("Pending");
+//					invoice.setCollectionMethod(temp.getCollectionProcess());
+//					invoice.setDateOfPresent(temp.getDateOfPresent());
+//					invoice.setIcmNo(code[0]);
+//					invoiceRepo.save(invoice);
+//				}
+//				if ("collectionUpdate".equals(temp.getCollectionProcess())) {
+//					Invoice invoice = invoiceRepo.findByInvoiceNo(temp.getInvoiceNo()).get();
+//					invoice.setCollectionValue(temp.getCollectionValue());
+//					invoice.setDateOfCollectionFromCcb(temp.getDateOfCollectionFromCcb());
+//					invoice.setVoucherStatusICP4("Pending");
+//					invoice.setTransferDone(false);
+//					invoiceRepo.save(invoice);
+//
+//				}
+			});
+			return new ResponseEntity<String>("Updated Successfully!", HttpStatus.ACCEPTED);
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
 }

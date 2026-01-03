@@ -41,7 +41,6 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(code);
-			obj.setContraEntry("No");
 			paymentVoucherRepo.save(obj);
 
 			return new ResponseEntity<String>("Created Successfully" + "\n Voucher Number : " + code,
@@ -156,7 +155,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								item.getVoucherNo(), item.getOfficeName(), null, null, null, null, item.getOnlineDate(),
 								"Reversed", null, null, null, item.getAmount(), "Other Online", item.getUtrNumber(),
 								item.getOnlineDate(), item.getBranchName(), item.getMainHead(), item.getSubHead(),
-								item.getNarration(), null, "No", null, null, item.getAccountType(), item.getAccountNo(),
+								item.getNarration(), "No", null, item.getAccountType(), item.getAccountNo(),
 								item.getBranchName(), item.getOnlineDate(), null, null, null);
 						adjustmentReceiptVoucherService.saveAdjustmentReceiptVoucher(AdjustmentReceiptVoucher, jwt);
 					} catch (Exception e) {

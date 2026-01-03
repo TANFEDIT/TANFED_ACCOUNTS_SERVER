@@ -22,7 +22,7 @@ public interface AdjustmentReceiptVoucherRepo extends JpaRepository<AdjustmentRe
 	@Query("SELECT e FROM AdjustmentReceiptVoucher e WHERE e.voucherStatus = 'Approved' AND e.officeName =:officeName")
 	public List<AdjustmentReceiptVoucher> findApprovedDataByOfficeName(@Param("officeName") String officeName);
 
-	public AdjustmentReceiptVoucher findByContraId(String contraId);
+//	public AdjustmentReceiptVoucher findByContraId(String contraId);
 	
 	
 }

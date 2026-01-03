@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.AccountsMaster;
 import com.tanfed.accounts.model.BeneficiaryMaster;
-import com.tanfed.accounts.model.ContraEntry;
 import com.tanfed.accounts.model.TaxInfo;
 import com.tanfed.accounts.model.Vouchers;
 import com.tanfed.accounts.repository.*;
@@ -44,9 +43,6 @@ public class FilteredAccountsDataService {
 
 	@Autowired
 	private PaymentVoucherRepo paymentVoucherRepo;
-
-	@Autowired
-	private ContraVoucherService contraVoucherService;
 
 	@Autowired
 	private JournalVoucherService journalVoucherService;
@@ -247,11 +243,11 @@ public class FilteredAccountsDataService {
 			data.setPaymentVoucher(paymentVouchers);
 			return data;
 		}
-		case "contraEntry": {
-			List<ContraEntry> contraEntryData = contraVoucherService.getContraEntryData(officeName);
-			data.setContraEntry(contraEntryData);
-			return data;
-		}
+//		case "contraEntry": {
+//			List<ContraEntry> contraEntryData = contraVoucherService.getContraEntryData(officeName);
+//			data.setContraEntry(contraEntryData);
+//			return data;
+//		}
 		case "journalVoucher": {
 			List<JournalVoucher> journalVouchers = new ArrayList<JournalVoucher>();
 			List<JournalVoucher> filteredLst = null;

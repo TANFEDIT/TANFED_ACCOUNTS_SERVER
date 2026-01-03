@@ -202,6 +202,7 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 				String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 				item.setVoucherStatus("Pending");
 				item.setEmpId(Arrays.asList(empId));
+				item.setCollectionMode("Through CC");
 				sundryDrObRepo.save(item);
 				SundryDrCrTable sundryDebtorsTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(
 						"APRIL 2025", item.getSubHead(), item.getOfficeName(), "Dr");

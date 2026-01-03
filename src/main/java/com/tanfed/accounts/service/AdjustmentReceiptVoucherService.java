@@ -15,7 +15,7 @@ public interface AdjustmentReceiptVoucherService {
 	
 	public AdjustmentReceiptVoucher getVoucherByVoucherNo(String voucherNo) throws Exception;
 
-	public AdjustmentReceiptVoucher getAdjustmentReceiptVoucherByContraId(String contraId) throws Exception;
+//	public AdjustmentReceiptVoucher getAdjustmentReceiptVoucherByContraId(String contraId) throws Exception;
 	
 	public List<AdjustmentReceiptVoucher> getVoucherByOfficeName(String officeName) throws Exception;
 	

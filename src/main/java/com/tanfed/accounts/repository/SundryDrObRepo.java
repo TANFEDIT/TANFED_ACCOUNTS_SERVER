@@ -14,6 +14,8 @@ public interface SundryDrObRepo extends JpaRepository<SundryDrOb, Long> {
 
 	public List<SundryDrOb> findByOfficeName(String officeName);
 	
+	public SundryDrOb findByInvoiceNo(String invoiceNo);
+	
 	@Query("SELECT e FROM SundryDrOb e WHERE (e.voucherStatus = 'Pending' OR e.voucherStatus = 'Verified') AND e.officeName =:officeName")
 	public List<SundryDrOb> findPendingDataByOfficeName(@Param("officeName") String officeName);
 	

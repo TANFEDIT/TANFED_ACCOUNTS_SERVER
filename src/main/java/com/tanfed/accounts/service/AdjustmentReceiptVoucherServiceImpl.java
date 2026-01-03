@@ -42,7 +42,6 @@ public class AdjustmentReceiptVoucherServiceImpl implements AdjustmentReceiptVou
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(code);
 			obj.setVoucherStatus("Pending");
-			obj.setContraEntry("No");
 			adjustmentReceiptVoucherRepo.save(obj);
 			return new ResponseEntity<String>("Created Successfully" + "\nVoucher Number: " + code, HttpStatus.CREATED);
 		} catch (Exception e) {
@@ -178,13 +177,13 @@ public class AdjustmentReceiptVoucherServiceImpl implements AdjustmentReceiptVou
 		}
 	}
 
-	@Override
-	public AdjustmentReceiptVoucher getAdjustmentReceiptVoucherByContraId(String contraId) throws Exception {
-		try {
-			return adjustmentReceiptVoucherRepo.findByContraId(contraId);
-		} catch (Exception e) {
-			throw new Exception(e);
-		}
-	}
+//	@Override
+//	public AdjustmentReceiptVoucher getAdjustmentReceiptVoucherByContraId(String contraId) throws Exception {
+//		try {
+//			return adjustmentReceiptVoucherRepo.findByContraId(contraId);
+//		} catch (Exception e) {
+//			throw new Exception(e);
+//		}
+//	}
 
 }

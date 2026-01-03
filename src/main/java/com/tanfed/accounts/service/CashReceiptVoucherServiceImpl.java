@@ -37,7 +37,6 @@ public class CashReceiptVoucherServiceImpl implements CashReceiptVoucherService 
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(code);
-			obj.setContraEntry("No");
 			cashReceiptRepo.save(obj);
 			return new ResponseEntity<String>("Created Successfully" + "\nVoucher Number: " + code, HttpStatus.CREATED);
 		} catch (Exception e) {
@@ -126,13 +125,13 @@ public class CashReceiptVoucherServiceImpl implements CashReceiptVoucherService 
 		}
 	}
 
-	@Override
-	public CashReceiptVoucher getCashReceiptVoucherByContraId(String contraId) throws Exception {
-		try {
-			return cashReceiptRepo.findByContraId(contraId);
-		} catch (Exception e) {
-			throw new Exception(e);
-		}
-	}
+//	@Override
+//	public CashReceiptVoucher getCashReceiptVoucherByContraId(String contraId) throws Exception {
+//		try {
+//			return cashReceiptRepo.findByContraId(contraId);
+//		} catch (Exception e) {
+//			throw new Exception(e);
+//		}
+//	}
 
 }

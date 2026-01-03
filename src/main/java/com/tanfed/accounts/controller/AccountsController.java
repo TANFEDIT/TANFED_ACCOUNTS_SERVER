@@ -99,7 +99,7 @@ public class AccountsController {
 				obj.setIdNo(grnNo);
 				ResponseEntity<String> saveJournalVoucher = journalVoucher.saveJournalVoucher(obj, jwt);
 				String jv = saveJournalVoucher.getBody();
-				if(jv == null){
+				if (jv == null) {
 					return null;
 				}
 				int index = jv.indexOf("JV Number : ");
@@ -186,17 +186,17 @@ public class AccountsController {
 		return new ResponseEntity<String>(updatedStatus, HttpStatus.ACCEPTED);
 	}
 
-	@PutMapping("/updatecontra")
-	public ResponseEntity<String> updateContraEntryHandler(@RequestParam String fromNo, @RequestParam String toNo,
-			@RequestParam String narration) throws Exception {
-		return contraVoucher.updateContraEntry(fromNo, toNo, narration);
-	}
-
-	@PutMapping("/rejectcontra")
-	public ResponseEntity<String> rejectContraEntryHandler(@RequestParam String fromNo, @RequestParam String toNo)
-			throws Exception {
-		return contraVoucher.rejectContraEntry(fromNo, toNo);
-	}
+//	@PutMapping("/updatecontra")
+//	public ResponseEntity<String> updateContraEntryHandler(@RequestParam String fromNo, @RequestParam String toNo,
+//			@RequestParam String narration) throws Exception {
+//		return contraVoucher.updateContraEntry(fromNo, toNo, narration);
+//	}
+//
+//	@PutMapping("/rejectcontra")
+//	public ResponseEntity<String> rejectContraEntryHandler(@RequestParam String fromNo, @RequestParam String toNo)
+//			throws Exception {
+//		return contraVoucher.rejectContraEntry(fromNo, toNo);
+//	}
 
 	@GetMapping("/accountsfilterdata")
 	public Vouchers getFilteredDataHandler(@RequestParam String formType, @RequestParam String officeName,
@@ -296,11 +296,11 @@ public class AccountsController {
 	}
 
 	@GetMapping("/fetchdataforcontra")
-	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName,
-			@RequestParam String contraType,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-			@RequestParam String fromNo, @RequestParam String toNo) throws Exception {
-		return contraVoucher.getDataForContraEntry(officeName, contraType, date, fromNo, toNo);
+	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName, @RequestParam String contraBetween,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contraFromDate,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contraToDate)
+			throws Exception {
+		return contraVoucher.getDataForContraEntry(officeName, contraBetween, contraFromDate, contraToDate);
 	}
 
 	@GetMapping("/accob/validate/{officeName}")

@@ -239,13 +239,13 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 		}
 
 		return new SalesJvTableData(null, invoice.getInvoiceNo(), invoice.getDate(), invoice.getNameOfInstitution(),
-				invoice.getDistrict(), invoice.getDistrict(), qty, roundToTwoDecimalPlaces(basic + cgst + sgst),
-				roundToTwoDecimalPlaces(basic), roundToTwoDecimalPlaces(cgst), roundToTwoDecimalPlaces(sgst),
-				roundToTwoDecimalPlaces(margin), null);
+				invoice.getDistrict(), invoice.getDistrict(), qty, roundToThreeDecimalPlaces(basic + cgst + sgst),
+				roundToThreeDecimalPlaces(basic), roundToThreeDecimalPlaces(cgst), roundToThreeDecimalPlaces(sgst),
+				roundToThreeDecimalPlaces(margin), null);
 	}
 
-	private static double roundToTwoDecimalPlaces(double value) {
-		return new BigDecimal(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
+	private static double roundToThreeDecimalPlaces(double value) {
+		return new BigDecimal(value).setScale(3, RoundingMode.HALF_UP).doubleValue();
 	}
 
 	@Override

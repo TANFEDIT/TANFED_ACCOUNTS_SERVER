@@ -34,7 +34,7 @@ public class CashReceiptVoucher {
 	private String subHead;
 	
 	private String remarks;
-	private String contraNarration;
+//	private String contraNarration;
 	
 	private String receivedFrom;
 	
@@ -44,7 +44,7 @@ public class CashReceiptVoucher {
 	
 	private LocalDate createdAt = LocalDate.now();
 	private String contraEntry;
-	private String contraId;
+//	private String contraId;
 	private String voucherStatus = "Pending";
 	private LocalDate approvedDate;
 	@Column

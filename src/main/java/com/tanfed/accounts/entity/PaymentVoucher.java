@@ -53,7 +53,7 @@ public class PaymentVoucher {
 	private Double amount;
 	
 	private String narration;
-	private String contraNarration;
+//	private String contraNarration;
 	private String ifmsIdNo;
 	
 	//cash update
@@ -78,7 +78,7 @@ public class PaymentVoucher {
 	private LocalDate settledDate;
 	
 	private String contraEntry;
-	private String contraId;
+//	private String contraId;
 	
 
 	

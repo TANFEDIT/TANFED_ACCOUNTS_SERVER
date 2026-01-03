@@ -60,9 +60,7 @@ public class AdjustmentReceiptVoucher{
 	private String subHead;
 	
 	private String narration;
-	private String contraNarration;
 	private String contraEntry;
-	private String contraId;
 	private LocalDate createdAt = LocalDate.now();
 	
 	

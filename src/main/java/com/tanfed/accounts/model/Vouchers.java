@@ -52,7 +52,6 @@ public class Vouchers {
 	private BillsGstOb billsGstObData;
 
 	private List<ReconciliationEntry> reconciliationEntry;
-	private List<ContraEntry> contraEntry;
 }
 
 

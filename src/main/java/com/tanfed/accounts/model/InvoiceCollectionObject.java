@@ -24,5 +24,6 @@ public class InvoiceCollectionObject {
 	private Double collectionValue;
 	private String officeName;
 	private String collectionMethod;
+	private Boolean isShort;
 	private AdjustmentReceiptVoucher adjVoucher;
 }

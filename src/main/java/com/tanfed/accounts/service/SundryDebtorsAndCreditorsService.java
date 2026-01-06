@@ -42,7 +42,7 @@ public interface SundryDebtorsAndCreditorsService {
 
 	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(AdjustmentReceiptVoucher obj, String jwt, String type)
 			throws Exception;
-	
+
 	public void updateFundTransfered(List<String> invoiceNoList) throws Exception;
 
 	public void revertFundTransfered(List<String> invoiceNoList) throws Exception;

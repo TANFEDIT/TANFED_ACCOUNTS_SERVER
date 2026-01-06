@@ -18,11 +18,12 @@ public class IcTableData {
 	private String ifmsId;
 	private String nameOfInstitution;
 	private String district;
-	private Double amount;
-	private Double qty;
+	private Double totalInvoiceValue;
+	private Double totalQty;
 	private String ccbBranch;
 	private LocalDate dueDate;
-	
+	private Double collectedValue;
+	private Boolean isShort;
 	private AdjustmentReceiptVoucher adjData;
 
 }

@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -428,7 +430,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	private void collectionUpdateData(DataForIC data, List<SundryDrOb> sDrOb, String icmNo) throws Exception {
 		try {
 			List<SundryDrOb> NoOfPresented = sDrOb.stream().filter(temp -> {
-				return temp.getDateOfPresent() != null && temp.getDateOfCollectionFromCcb() == null;
+				return temp.getDateOfPresent() != null && temp.getIsShort().equals(false) && (temp
+						.getCollectionValue() == null
+						|| (temp.getCollectionValue().stream().mapToDouble(item -> item).sum() < temp.getAmount()));
 			}).collect(Collectors.toList());
 
 			Integer totalNoOfInvoicePresented = 0;
@@ -443,17 +447,18 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			}
 			data.setTotalNoOfInvoicePresented(totalNoOfInvoicePresented);
 			data.setTotalValueOfInvoices(totalValueOfInvoices);
-			data.setIcmNoLst(icmNoLst);
+			data.setIcmNoList(icmNoLst);
 			if (icmNo != null && !icmNo.isEmpty()) {
-				data.setTableData(sDrOb.stream()
-						.filter(item -> item.getDateOfPresent() != null && icmNo.equals(item.getIcmNo())
-								&& item.getDateOfCollectionFromCcb() == null
-								&& item.getVoucherStatusICP3().equals("Approved"))
+				data.setTableData(sDrOb.stream().filter(item -> item.getDateOfPresent() != null
+						&& icmNo.equals(item.getIcmNo()) && item.getIsShort().equals(false)
+						&& item.getVoucherStatusICP3().equals("Approved") && (item.getCollectionValue() == null || (item
+								.getCollectionValue().stream().mapToDouble(sum -> sum).sum() < item.getAmount())))
 						.map(item -> {
 							try {
 								return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 										item.getNameOfInstitution(), item.getDistrict(), item.getAmount(),
-										item.getQty(), item.getCcbBranch(), item.getDueDate(), null);
+										item.getQty(), item.getCcbBranch(), item.getDueDate(),
+										fetchCollectedValue(item), item.getIsShort(), null);
 							} catch (Exception e) {
 								e.printStackTrace();
 								return null;
@@ -464,6 +469,13 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			throw new Exception(e);
 		}
 	}
+
+	private Double fetchCollectedValue(SundryDrOb inv) {
+		return inv.getCollectionValue() == null ? 0.0
+				: inv.getCollectionValue().stream().mapToDouble(item -> item).sum();
+	}
+
+	private static Logger logger = LoggerFactory.getLogger(SundryDebtorsAndCreditorsServiceImpl.class);
 
 	private void presentToCCBData(DataForIC data, List<SundryDrOb> sDrOb, String ccbBranch, LocalDate dueDate,
 			LocalDate addedToPresentDate) throws Exception {
@@ -489,8 +501,10 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			data.setTotalNoOfAvlToPresent(totalNoOfAvlToPresent);
 			data.setTotalValueOfInvoices(totalValueOfInvoices);
 			data.setCcbBranchLst(ccbBranchlst);
-			data.setDueDatelst(dueDatelst);
-			data.setAddedToPresentDatelst(addedToPresentDatelst);
+			data.setDueDate(dueDatelst);
+			data.setAddedToPresentDate(addedToPresentDatelst);
+			logger.info(ccbBranch);
+			logger.info("{}", dueDate);
 			if (ccbBranch != null && !ccbBranch.isEmpty()) {
 				if (dueDate != null) {
 					data.setTableData(sDrOb.stream().filter(item -> {
@@ -504,7 +518,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						try {
 							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-									item.getCcbBranch(), item.getDueDate(), null);
+									item.getCcbBranch(), item.getDueDate(), null, null, null);
 						} catch (Exception e) {
 							e.printStackTrace();
 							return null;
@@ -553,7 +567,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 							try {
 								return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 										item.getNameOfInstitution(), item.getDistrict(), item.getAmount(),
-										item.getQty(), item.getCcbBranch(), item.getDueDate(), null);
+										item.getQty(), item.getCcbBranch(), item.getDueDate(), null, null, null);
 							} catch (Exception e) {
 								e.printStackTrace();
 								return null;
@@ -569,7 +583,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						try {
 							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-									item.getCcbBranch(), item.getDueDate(), item.getAdjReceipt());
+									item.getCcbBranch(), item.getDueDate(), null, null, item.getAdjReceipt().get(0));
 						} catch (Exception e) {
 							e.printStackTrace();
 							return null;
@@ -600,22 +614,24 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			data.setTotalValueOfInvoices(totalValueOfInvoices);
 			data.setTotalNoOfInvoicesAcklgd(totalNoOfInvoicesAcklgd);
 			data.setTotalNoOfInvoicesrmng(totalNoOfInvoices - totalNoOfInvoicesAcklgd);
-
-			data.setTableData(sDrOb.stream().filter(item -> {
-				Boolean dateMatch = !item.getInvoiceDate().isBefore(fromDate) && !item.getInvoiceDate().isAfter(toDate);
-				return item.getAckQty() == null && dateMatch && item.getAckEntryDate() == null;
-			}).map(item -> {
-				try {
-					BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt,
-							item.getNameOfInstitution());
-					return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
-							item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-							buyerFirmInfo.getBranchName(), item.getDueDate(), null);
-				} catch (Exception e) {
-					e.printStackTrace();
-					return null;
-				}
-			}).collect(Collectors.toList()));
+			if (fromDate != null && toDate != null) {
+				data.setTableData(sDrOb.stream().filter(item -> {
+					Boolean dateMatch = !item.getInvoiceDate().isBefore(fromDate)
+							&& !item.getInvoiceDate().isAfter(toDate);
+					return item.getAckQty() == null && dateMatch && item.getAckEntryDate() == null;
+				}).map(item -> {
+					try {
+						BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt,
+								item.getNameOfInstitution());
+						return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
+								item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
+								buyerFirmInfo.getBranchName(), item.getDueDate(), null, null, null);
+					} catch (Exception e) {
+						e.printStackTrace();
+						return null;
+					}
+				}).collect(Collectors.toList()));
+			}
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
@@ -656,17 +672,25 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					sundryDrOb.setCollectionMethod(temp.getCollectionProcess());
 					sundryDrOb.setDateOfPresent(temp.getDateOfPresent());
 					sundryDrOb.setIcmNo(code[0]);
+					sundryDrOb.setIsShort(false);
 					sundryDrObRepo.save(sundryDrOb);
 				}
-//				if ("collectionUpdate".equals(temp.getCollectionProcess())) {
-//					Invoice invoice = invoiceRepo.findByInvoiceNo(temp.getInvoiceNo()).get();
-//					invoice.setCollectionValue(temp.getCollectionValue());
-//					invoice.setDateOfCollectionFromCcb(temp.getDateOfCollectionFromCcb());
-//					invoice.setVoucherStatusICP4("Pending");
-//					invoice.setTransferDone(false);
-//					invoiceRepo.save(invoice);
-//
-//				}
+				if ("collectionUpdate".equals(temp.getCollectionProcess())) {
+					SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(temp.getInvoiceNo());
+					if (sundryDrOb.getDateOfCollectionFromCcb() == null) {
+						sundryDrOb.setDateOfCollectionFromCcb(
+								new ArrayList<>(List.of(temp.getDateOfCollectionFromCcb())));
+						sundryDrOb.setCollectionValue(Arrays.asList(temp.getCollectionValue()));
+					} else {
+						sundryDrOb.getDateOfCollectionFromCcb().add(temp.getDateOfCollectionFromCcb());
+						sundryDrOb.getCollectionValue().add(temp.getCollectionValue());
+					}
+					sundryDrOb.setVoucherStatusICP4("Pending");
+					sundryDrOb.setTransferDone(false);
+					sundryDrOb.setIsShort(temp.getIsShort());
+					sundryDrObRepo.save(sundryDrOb);
+
+				}
 			});
 			return new ResponseEntity<String>("Updated Successfully!", HttpStatus.ACCEPTED);
 		} catch (Exception e) {
@@ -697,7 +721,14 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				List<SundryDrOb> sundryDrOb = sundryDrObRepo.findByIcmNo(obj.getIcmInvNo());
 				sundryDrOb.forEach(item -> {
 					try {
-						item.setAdjReceipt(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo));
+						if (item.getAdjReceipt() == null) {
+							item.setAdjReceipt(
+									Arrays.asList(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo)));
+							item.setAdjReceiptStatus(Arrays.asList("Pending"));
+						} else {
+							item.getAdjReceipt().add(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo));
+							item.getAdjReceiptStatus().add("Pending");
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -705,7 +736,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				sundryDrObRepo.saveAll(sundryDrOb);
 			} else {
 				SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(obj.getIcmInvNo());
-				sundryDrOb.setAdjReceipt(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo));
+				sundryDrOb
+						.setAdjReceipt(Arrays.asList(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo)));
+				sundryDrOb.setAdjReceiptStatus(Arrays.asList("Pending"));
 				sundryDrObRepo.save(sundryDrOb);
 			}
 			return new ResponseEntity<String>("Updated Successfully", HttpStatus.ACCEPTED);

@@ -3,11 +3,13 @@ package com.tanfed.accounts.entity;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -53,8 +55,8 @@ public class SundryDrOb {
 	private LocalDate addedToPresentDate;
 	private LocalDate dateOfPresent;
 	private String icmNo;
-	private Double collectionValue;
-	private LocalDate dateOfCollectionFromCcb;
+	private List<Double> collectionValue;
+	private List<LocalDate> dateOfCollectionFromCcb;
 	private String voucherStatusICP1;
 	private List<String> designationICP1;
 	private String voucherStatusICP2;
@@ -64,7 +66,8 @@ public class SundryDrOb {
 	private String voucherStatusICP4;
 	private List<String> designationICP4;
 	private Boolean transferDone;
-	
-	@OneToOne
-	private AdjustmentReceiptVoucher adjReceipt;
+	private Boolean isShort;
+	private List<String> adjReceiptStatus;
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+	private List<AdjustmentReceiptVoucher> adjReceipt;
 }

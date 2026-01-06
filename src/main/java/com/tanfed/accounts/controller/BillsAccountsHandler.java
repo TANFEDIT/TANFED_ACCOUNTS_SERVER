@@ -219,11 +219,11 @@ public class BillsAccountsHandler {
 							.collect(Collectors.toList());
 					if (!openingBalance.isEmpty()) {
 						obCa = openingBalance.stream().filter(item -> item.getAccountType().equals("Current A/c"))
-								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
+								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
 						obNpa = openingBalance.stream().filter(item -> item.getAccountType().equals("Non PDS A/c"))
-								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
+								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
 						obSa = openingBalance.stream().filter(item -> item.getAccountType().equals("Savings A/c"))
-								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
+								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
 					} else {
 						throw new RuntimeException("Opening balance not found for " + date);
 					}
@@ -267,7 +267,7 @@ public class BillsAccountsHandler {
 							.collect(Collectors.toList());
 					if (!openingBalance.isEmpty()) {
 						ob = openingBalance.stream().filter(item -> item.getDayBookAmount() != null)
-								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
+								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
 						ob += openingBalance.stream().filter(item -> item.getAmount() != null)
 								.mapToDouble(OpeningBalance::getAmount).sum();
 					} else {
@@ -430,9 +430,38 @@ public class BillsAccountsHandler {
 		sundryDebtorsAndCreditorsService.updateFundTransfered(invoiceNoList);
 	}
 
-	@PutMapping("/api/billsaccounts/revertfundtransfered")
+	@PutMapping("/revertfundtransfered")
 	public void revertFundTransferedHandler(@RequestBody List<String> invoiceNoList,
 			@RequestHeader("Authorization") String jwt) throws Exception {
 		sundryDebtorsAndCreditorsService.revertFundTransfered(invoiceNoList);
 	}
+
+	@GetMapping("/fetchsdrobdataforic")
+	public DataForIC getDataForInvoiceCollectionsHandler(@RequestParam(required = false) String officeName,
+			@RequestParam(required = false) String activity,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate fromDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate toDate,
+			@RequestParam(required = false) String ccbBranch,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate ackEntryDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate addedToPresentDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate dueDate,
+			@RequestParam(required = false) String icmNo, @RequestParam(required = false) String collectionProcess,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		return sundryDebtorsAndCreditorsService.fetchDataForIC(officeName, activity, collectionProcess, jwt, fromDate,
+				toDate, ccbBranch, ackEntryDate, dueDate, addedToPresentDate, icmNo);
+	}
+	
+	@PutMapping("/updatesdricdata")
+	@PreAuthorize("hasAnyRole('ROLE_SUPERADMIN', 'ROLE_ESTADMIN', 'ROLE_ROUSER', 'ROLE_ROADMIN')")
+	public ResponseEntity<String> updateInvoiceCollectionHandler(@RequestBody List<InvoiceCollectionObject> obj,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		return sundryDebtorsAndCreditorsService.updateICData(obj, jwt);
+	}
+	
+	@PutMapping("/savesdrAdjReceiptforicm/{type}")
+	public ResponseEntity<String> saveAdjReceiptForIcmInvoicesHandler(@PathVariable String type,
+			@RequestBody AdjustmentReceiptVoucher obj, @RequestHeader("Authorization") String jwt) throws Exception {
+		return sundryDebtorsAndCreditorsService.saveAdjReceiptForIcmInvoices(obj, jwt, type);
+	}
+	
 }

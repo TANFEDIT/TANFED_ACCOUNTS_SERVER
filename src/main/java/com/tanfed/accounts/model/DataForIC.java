@@ -22,10 +22,10 @@ public class DataForIC {
 	private Integer totalNoOfInvoicePresented;
 	
 	private Set<String> ccbBranchLst;
-	private Set<String> icmNoLst;
+	private Set<String> icmNoList;
 	private Set<LocalDate> ackEntryDate;
-	private Set<LocalDate> dueDatelst;
-	private Set<LocalDate> addedToPresentDatelst;
+	private Set<LocalDate> dueDate;
+	private Set<LocalDate> addedToPresentDate;
 	private List<IcTableData> tableData;
 	private List<IcTableData> adjTableData;
 }

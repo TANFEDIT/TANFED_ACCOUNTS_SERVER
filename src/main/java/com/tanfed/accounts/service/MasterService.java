@@ -45,7 +45,7 @@ public interface MasterService {
 	public SupplierInfo getSupplierInfoBySupplierNameHandler(@RequestParam String supplierName, @RequestHeader("Authorization") String jwt) throws Exception;
 	
 	@GetMapping("/api/basic-info/fetchbuyerfirmdata")
-	public BuyerFirmInfo getBuyerFirmByFirmNameHandler(@RequestHeader("Authorization") String jwt, @RequestParam String ifmsId) throws Exception;
+	public BuyerFirmInfo getBuyerFirmByFirmNameHandler(@RequestHeader("Authorization") String jwt, @RequestParam String nameOfInstitution) throws Exception;
 	
 	@GetMapping("/api/inventrymaster/fetchproduct")
 	public ProductMaster getProductDataByProductNameHandler(@RequestHeader("Authorization") String jwt, @RequestParam String productName) throws Exception;

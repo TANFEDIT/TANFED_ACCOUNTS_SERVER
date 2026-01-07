@@ -585,7 +585,8 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						try {
 							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-									item.getCcbBranch(), item.getDueDate(), null, null, item.getAdjReceipt().get(0));
+									item.getCcbBranch(), item.getDueDate(), null, null,
+									item.getAdjReceipt().get(0) == null ? null : item.getAdjReceipt().get(0));
 						} catch (Exception e) {
 							e.printStackTrace();
 							return null;
@@ -690,7 +691,6 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						sundryDrOb.getDateOfCollectionFromCcb().add(temp.getDateOfCollectionFromCcb());
 						sundryDrOb.getCollectionValue().add(temp.getCollectionValue());
 					}
-					sundryDrOb.setVoucherStatusICP4("Pending");
 					sundryDrOb.setTransferDone(false);
 					sundryDrOb.setIsShort(temp.getIsShort());
 					sundryDrObRepo.save(sundryDrOb);
@@ -823,6 +823,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					invoice.setAddedToPresentDate(null);
 					invoice.setVoucherStatusICP2(null);
 					invoice.setDueDate(null);
+					invoice.setCollectionMethod(null);
+					invoice.setAdjReceipt(null);
+					invoice.setAdjReceiptStatus(null);
 				}
 				if (oldDesignation == null) {
 					invoice.setDesignationICP2(Arrays.asList(designation));
@@ -859,16 +862,15 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			case "icm": {
 				List<SundryDrOb> byIcmNo = sundryDrObRepo.findByIcmNo(obj.getId());
 //				revertIcmAdjAcc(obj, jwt);
+				obj.getAdjNo();
 				byIcmNo.forEach(invoice -> {
 					String designationIcp4 = userService.getNewDesignation(empId);
 					List<String> oldDesignationIcp4 = invoice.getDesignationICP4();
 
-					invoice.setVoucherStatusICP4(obj.getVoucherStatus());
 					if (obj.getVoucherStatus().equals("Rejected")) {
 						invoice.setDateOfCollectionFromCcb(null);
 						invoice.setCollectionValue(null);
 						invoice.setTransferDone(false);
-						invoice.setVoucherStatusICP4(null);
 					}
 					if (oldDesignationIcp4 == null) {
 						invoice.setDesignationICP4(Arrays.asList(designationIcp4));

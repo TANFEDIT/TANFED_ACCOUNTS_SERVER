@@ -220,11 +220,11 @@ public class BillsAccountsHandler {
 							.collect(Collectors.toList());
 					if (!openingBalance.isEmpty()) {
 						obCa = openingBalance.stream().filter(item -> item.getAccountType().equals("Current A/c"))
-								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
+								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
 						obNpa = openingBalance.stream().filter(item -> item.getAccountType().equals("Non PDS A/c"))
-								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
+								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
 						obSa = openingBalance.stream().filter(item -> item.getAccountType().equals("Savings A/c"))
-								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
+								.mapToDouble(OpeningBalance::getDayBookAmount).sum();
 					} else {
 						throw new RuntimeException("Opening balance not found for " + date);
 					}

@@ -24,6 +24,7 @@ import com.tanfed.accounts.model.DataForIC;
 import com.tanfed.accounts.model.IcTableData;
 import com.tanfed.accounts.model.SundryDebtorsSubHeadTable;
 import com.tanfed.accounts.model.SupplierInfo;
+import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.*;
 import com.tanfed.accounts.response.DataForSundryDebtor;
 import com.tanfed.accounts.utils.CodeGenerator;
@@ -404,8 +405,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			DataForIC data = new DataForIC();
 			if (officeName != null && !officeName.isEmpty()) {
 				if (activity != null && !activity.isEmpty()) {
-					List<SundryDrOb> sDrOb = sundryDrObRepo.findByOfficeName(officeName).stream().filter(
-							item -> item.getVoucherStatus().equals("Approved") && item.getActivity().equals(activity))
+					List<SundryDrOb> sDrOb = sundryDrObRepo.findByOfficeName(officeName).stream()
+							.filter(item -> item.getVoucherStatus().equals("Approved")
+									&& item.getActivity().equals(activity) && item.getStatus().equals("Dr"))
 							.collect(Collectors.toList());
 					if (collectionProcess.equals("invoiceAckEntry")) {
 						invoiceAckEntryData(data, officeName, sDrOb, fromDate, toDate, jwt);
@@ -640,6 +642,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	@Autowired
 	private CodeGenerator codeGenerator;
 
+	@Autowired
+	private UserService userService;
+
 	@Override
 	public ResponseEntity<String> updateICData(List<InvoiceCollectionObject> obj, String jwt) throws Exception {
 		try {
@@ -775,4 +780,114 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 		}
 
 	}
+
+	@Override
+	public String updateAplStatusInvoiceCollection(VoucherApproval obj, String jwt) throws Exception {
+		try {
+			String designation = null;
+			List<String> oldDesignation = null;
+
+			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
+
+			switch (obj.getFormType()) {
+			case "invoiceAckEntry": {
+				SundryDrOb invoice = sundryDrObRepo.findById(Long.valueOf(obj.getId())).get();
+
+				designation = userService.getNewDesignation(empId);
+				oldDesignation = invoice.getDesignationICP1();
+
+				invoice.setVoucherStatusICP1(obj.getVoucherStatus());
+				if (obj.getVoucherStatus().equals("Rejected")) {
+					invoice.setAckEntryDate(null);
+					invoice.setAckQty(null);
+					invoice.setVoucherStatusICP1(null);
+				}
+				if (oldDesignation == null) {
+					invoice.setDesignationICP1(Arrays.asList(designation));
+				} else {
+					invoice.getDesignationICP1().add(designation);
+				}
+
+				sundryDrObRepo.save(invoice);
+				return designation;
+			}
+
+			case "invoiceCollectionAvailable": {
+				SundryDrOb invoice = sundryDrObRepo.findById(Long.valueOf(obj.getId())).get();
+//				revertIcmAdjAcc(obj, jwt);
+				designation = userService.getNewDesignation(empId);
+				oldDesignation = invoice.getDesignationICP2();
+
+				invoice.setVoucherStatusICP2(obj.getVoucherStatus());
+				if (obj.getVoucherStatus().equals("Rejected")) {
+					invoice.setAddedToPresentDate(null);
+					invoice.setVoucherStatusICP2(null);
+					invoice.setDueDate(null);
+				}
+				if (oldDesignation == null) {
+					invoice.setDesignationICP2(Arrays.asList(designation));
+				} else {
+					invoice.getDesignationICP2().add(designation);
+				}
+
+				sundryDrObRepo.save(invoice);
+				return designation;
+			}
+
+			case "presentToCCB": {
+				SundryDrOb invoice = sundryDrObRepo.findById(Long.valueOf(obj.getId())).get();
+
+				designation = userService.getNewDesignation(empId);
+				oldDesignation = invoice.getDesignationICP3();
+
+				invoice.setVoucherStatusICP3(obj.getVoucherStatus());
+				if (obj.getVoucherStatus().equals("Rejected")) {
+					invoice.setDateOfPresent(null);
+					invoice.setIcmNo(null);
+					invoice.setVoucherStatusICP3(null);
+				}
+				if (oldDesignation == null) {
+					invoice.setDesignationICP3(Arrays.asList(designation));
+				} else {
+					invoice.getDesignationICP3().add(designation);
+				}
+
+				sundryDrObRepo.save(invoice);
+				return designation;
+			}
+
+			case "icm": {
+				List<SundryDrOb> byIcmNo = sundryDrObRepo.findByIcmNo(obj.getId());
+//				revertIcmAdjAcc(obj, jwt);
+				byIcmNo.forEach(invoice -> {
+					String designationIcp4 = userService.getNewDesignation(empId);
+					List<String> oldDesignationIcp4 = invoice.getDesignationICP4();
+
+					invoice.setVoucherStatusICP4(obj.getVoucherStatus());
+					if (obj.getVoucherStatus().equals("Rejected")) {
+						invoice.setDateOfCollectionFromCcb(null);
+						invoice.setCollectionValue(null);
+						invoice.setTransferDone(false);
+						invoice.setVoucherStatusICP4(null);
+					}
+					if (oldDesignationIcp4 == null) {
+						invoice.setDesignationICP4(Arrays.asList(designationIcp4));
+					} else {
+						invoice.getDesignationICP4().add(designationIcp4);
+					}
+
+					sundryDrObRepo.save(invoice);
+				});
+
+				return designation;
+			}
+
+			default:
+				throw new IllegalArgumentException("Unexpected value: " + obj.getFormType());
+			}
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
 }

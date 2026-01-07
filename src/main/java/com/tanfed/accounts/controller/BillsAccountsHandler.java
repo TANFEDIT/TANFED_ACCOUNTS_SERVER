@@ -27,6 +27,7 @@ import com.tanfed.accounts.repository.ClosingBalanceRepo;
 import com.tanfed.accounts.repository.OpeningBalanceRepo;
 import com.tanfed.accounts.response.*;
 import com.tanfed.accounts.service.*;
+import com.tanfed.accounts.model.VoucherApproval;
 
 @RestController
 @RequestMapping("/api/billsaccounts")
@@ -462,6 +463,14 @@ public class BillsAccountsHandler {
 	public ResponseEntity<String> saveAdjReceiptForIcmInvoicesHandler(@PathVariable String type,
 			@RequestBody AdjustmentReceiptVoucher obj, @RequestHeader("Authorization") String jwt) throws Exception {
 		return sundryDebtorsAndCreditorsService.saveAdjReceiptForIcmInvoices(obj, jwt, type);
+	}
+	
+	@PutMapping("/updatesdricapproval")
+	@PreAuthorize("hasAnyRole('ROLE_SUPERADMIN', 'ROLE_ESTADMIN', 'ROLE_ROADMIN')")
+	public ResponseEntity<String> inventryVoucherApprovalHandler(@RequestBody VoucherApproval obj,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		String updatedStatus = sundryDebtorsAndCreditorsService.updateAplStatusInvoiceCollection(obj, jwt);
+		return new ResponseEntity<String>(updatedStatus, HttpStatus.ACCEPTED);
 	}
 	
 }

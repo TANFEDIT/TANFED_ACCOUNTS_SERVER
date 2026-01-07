@@ -117,7 +117,7 @@ public class CodeGenerator {
 		List<SundryDrOb> sundryDrOb;
 
 		do {
-			code = String.format("%s%02d%02d%04d", "ICM", year, month, digitCounter);
+			code = String.format("%s%02d%02d%04d", "OBICM", year, month, digitCounter);
 			sundryDrOb = sundryDrObRepo.findByIcmNo(code);
 			digitCounter++;
 		} while (!sundryDrOb.isEmpty());

@@ -11,6 +11,7 @@ import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.entity.ReconciliationEntry;
 import com.tanfed.accounts.model.DataForIC;
 import com.tanfed.accounts.model.InvoiceCollectionObject;
+import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.response.DataForSundryDebtor;
 
 public interface SundryDebtorsAndCreditorsService {
@@ -46,4 +47,6 @@ public interface SundryDebtorsAndCreditorsService {
 	public void updateFundTransfered(List<String> invoiceNoList) throws Exception;
 
 	public void revertFundTransfered(List<String> invoiceNoList) throws Exception;
+
+	public String updateAplStatusInvoiceCollection(VoucherApproval obj, String jwt) throws Exception;
 }

@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +23,16 @@ import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.BuyerFirmInfo;
 import com.tanfed.accounts.model.DataForIC;
 import com.tanfed.accounts.model.IcTableData;
+import com.tanfed.accounts.model.IcmObject;
 import com.tanfed.accounts.model.SundryDebtorsSubHeadTable;
 import com.tanfed.accounts.model.SupplierInfo;
 import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.*;
 import com.tanfed.accounts.response.DataForSundryDebtor;
 import com.tanfed.accounts.utils.CodeGenerator;
+
+import jakarta.transaction.Transactional;
+
 import com.tanfed.accounts.model.BankInfo;
 import com.tanfed.accounts.model.InvoiceCollectionObject;
 
@@ -563,7 +568,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			if (ccbBranch != null && !ccbBranch.isEmpty()) {
 				data.setTableData(sDrOb.stream()
 						.filter(item -> item.getAckQty() != null && ccbBranch.equals(item.getCcbBranch())
-								&& item.getVoucherStatusICP1().equals("Approved")
+								&& item.getVoucherStatusICP1().equals("Approved") && null == item.getCollectionMethod()
 								&& ackEntryDate.equals(item.getAckEntryDate()) && item.getAddedToPresentDate() == null)
 						.map(item -> {
 							try {
@@ -585,11 +590,12 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						try {
 							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-									item.getCcbBranch(), item.getDueDate(), null, null,
-									item.getAdjReceipt().get(0) == null ? null : item.getAdjReceipt().get(0));
+									item.getCcbBranch(), item.getDueDate(), null, null, item.getAdjReceipt().get(0));
 						} catch (Exception e) {
 							e.printStackTrace();
-							return null;
+							return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
+									item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
+									item.getCcbBranch(), item.getDueDate(), null, null, null);
 						}
 					}).collect(Collectors.toList()));
 		} catch (Exception e) {
@@ -704,17 +710,19 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	}
 
 	@Override
-	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(AdjustmentReceiptVoucher obj, String jwt, String type)
+	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(IcmObject obj, String jwt, String type)
 			throws Exception {
 		try {
-			BankInfo bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, obj.getOfficeName()).stream()
+			logger.info("{}", obj);
+			BankInfo bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, obj.getAdjData().getOfficeName())
+					.stream()
 					.filter(itemData -> itemData.getAccountType().equals("Non PDS A/c")
-							&& itemData.getBranchName().equals(obj.getBranchName()))
+							&& itemData.getBranchName().equals(obj.getAdjData().getBranchName()))
 					.collect(Collectors.toList()).get(0);
-			obj.setAccountType("Non PDS A/c");
-			obj.setAccountNo(bankInfo.getAccountNumber());
-			ResponseEntity<String> responseEntity = adjustmentReceiptVoucherService.saveAdjustmentReceiptVoucher(obj,
-					jwt);
+			obj.getAdjData().setAccountType("Non PDS A/c");
+			obj.getAdjData().setAccountNo(bankInfo.getAccountNumber());
+			ResponseEntity<String> responseEntity = adjustmentReceiptVoucherService
+					.saveAdjustmentReceiptVoucher(obj.getAdjData(), jwt);
 			String responseString = responseEntity.getBody();
 			if (responseString == null) {
 				throw new Exception("No data found");
@@ -723,24 +731,29 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			int index = responseString.indexOf(prefix);
 			String voucherNo = responseString.substring(index + prefix.length()).trim();
 			if (type.equals("icm")) {
-				List<SundryDrOb> sundryDrOb = sundryDrObRepo.findByIcmNo(obj.getIcmInvNo());
+				List<String> invoiceList = obj.getInvoices().stream().map(i -> i.getInvoiceNo())
+						.collect(Collectors.toList());
+				List<SundryDrOb> sundryDrOb = sundryDrObRepo.findByIcmNo(obj.getAdjData().getIcmInvNo());
 				sundryDrOb.forEach(item -> {
-					try {
-						if (item.getAdjReceipt() == null) {
-							item.setAdjReceipt(
-									Arrays.asList(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo)));
-							item.setAdjReceiptStatus(Arrays.asList("Pending"));
-						} else {
-							item.getAdjReceipt().add(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo));
-							item.getAdjReceiptStatus().add("Pending");
+					if (invoiceList.contains(item.getInvoiceNo())) {
+						try {
+							if (item.getAdjReceipt() == null) {
+								item.setAdjReceipt(Arrays
+										.asList(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo)));
+								item.setAdjReceiptStatus(Arrays.asList("Pending"));
+							} else {
+								item.getAdjReceipt()
+										.add(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo));
+								item.getAdjReceiptStatus().add("Pending");
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
 						}
-					} catch (Exception e) {
-						e.printStackTrace();
 					}
 				});
 				sundryDrObRepo.saveAll(sundryDrOb);
 			} else {
-				SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(obj.getIcmInvNo());
+				SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(obj.getAdjData().getIcmInvNo());
 				sundryDrOb
 						.setAdjReceipt(Arrays.asList(adjustmentReceiptVoucherService.getVoucherByVoucherNo(voucherNo)));
 				sundryDrOb.setAdjReceiptStatus(Arrays.asList("Pending"));
@@ -781,6 +794,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 
 	}
 
+	@Transactional
 	@Override
 	public String updateAplStatusInvoiceCollection(VoucherApproval obj, String jwt) throws Exception {
 		try {
@@ -814,9 +828,23 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 
 			case "invoiceCollectionAvailable": {
 				SundryDrOb invoice = sundryDrObRepo.findById(Long.valueOf(obj.getId())).get();
-//				revertIcmAdjAcc(obj, jwt);
 				designation = userService.getNewDesignation(empId);
 				oldDesignation = invoice.getDesignationICP2();
+				if (invoice.getCollectionMethod().equals("AdjReceipt")) {
+					AdjustmentReceiptVoucher arv = adjustmentReceiptVoucherService
+							.getVoucherByVoucherNo(obj.getAdjNo());
+					arv.setVoucherStatus(obj.getVoucherStatus());
+					arv.getEmpId().add(empId);
+					if (obj.getVoucherStatus().equals("Approved")) {
+						arv.setApprovedDate(LocalDate.now());
+						adjustmentReceiptVoucherService.updateClosingBalance(arv);
+					}
+					if (arv.getDesignation() == null) {
+						arv.setDesignation(Arrays.asList(designation));
+					} else {
+						arv.getDesignation().add(designation);
+					}
+				}
 
 				invoice.setVoucherStatusICP2(obj.getVoucherStatus());
 				if (obj.getVoucherStatus().equals("Rejected")) {
@@ -861,15 +889,32 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 
 			case "icm": {
 				List<SundryDrOb> byIcmNo = sundryDrObRepo.findByIcmNo(obj.getId());
-//				revertIcmAdjAcc(obj, jwt);
-				obj.getAdjNo();
+				String designationIcp4 = userService.getNewDesignation(empId);
+				AdjustmentReceiptVoucher arv = adjustmentReceiptVoucherService.getVoucherByVoucherNo(obj.getAdjNo());
+				arv.setVoucherStatus(obj.getVoucherStatus());
+				arv.getEmpId().add(empId);
+				if (obj.getVoucherStatus().equals("Approved")) {
+					arv.setApprovedDate(LocalDate.now());
+					adjustmentReceiptVoucherService.updateClosingBalance(arv);
+					updateSdrAdjReceipt(arv, jwt);
+				}
+				if (arv.getDesignation() == null) {
+					arv.setDesignation(Arrays.asList(designation));
+				} else {
+					arv.getDesignation().add(designation);
+				}
+
 				byIcmNo.forEach(invoice -> {
-					String designationIcp4 = userService.getNewDesignation(empId);
 					List<String> oldDesignationIcp4 = invoice.getDesignationICP4();
 
 					if (obj.getVoucherStatus().equals("Rejected")) {
-						invoice.setDateOfCollectionFromCcb(null);
-						invoice.setCollectionValue(null);
+						List<AdjustmentReceiptVoucher> list = invoice.getAdjReceipt();
+						int index = IntStream.range(0, list.size())
+								.filter(i -> list.get(i).getVoucherNo().equals(obj.getAdjNo())).findFirst().orElse(-1);
+						invoice.getAdjReceipt().remove(index);
+						invoice.getAdjReceiptStatus().remove(index);
+						invoice.getCollectionValue().remove(index);
+						invoice.getDateOfCollectionFromCcb().remove(index);
 						invoice.setTransferDone(false);
 					}
 					if (oldDesignationIcp4 == null) {

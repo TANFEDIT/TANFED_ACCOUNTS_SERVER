@@ -9,7 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,11 +63,11 @@ public class SundryDrOb {
 	private List<String> designationICP2;
 	private String voucherStatusICP3;
 	private List<String> designationICP3;
-	private String voucherStatusICP4;
 	private List<String> designationICP4;
 	private Boolean transferDone;
 	private Boolean isShort;
 	private List<String> adjReceiptStatus;
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+	
+	@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	private List<AdjustmentReceiptVoucher> adjReceipt;
 }

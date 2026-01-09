@@ -121,7 +121,7 @@ public class VoucherApprovalService {
 					.orElse(null);
 			designation = userService.getNewDesignation(empId);
 			oldDesignation = arv.getDesignation();
-
+			logger.info("inside switch case");
 			arv.setVoucherStatus(obj.getVoucherStatus());
 			arv.getEmpId().add(empId);
 			if (obj.getVoucherStatus().equals("Approved")) {

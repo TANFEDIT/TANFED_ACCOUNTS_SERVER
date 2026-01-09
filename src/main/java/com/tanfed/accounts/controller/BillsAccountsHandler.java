@@ -6,6 +6,8 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -459,9 +461,11 @@ public class BillsAccountsHandler {
 		return sundryDebtorsAndCreditorsService.updateICData(obj, jwt);
 	}
 	
+	private static Logger logger = LoggerFactory.getLogger(SundryDebtorsAndCreditorsServiceImpl.class);
 	@PutMapping("/savesdrAdjReceiptforicm/{type}")
 	public ResponseEntity<String> saveAdjReceiptForIcmInvoicesHandler(@PathVariable String type,
-			@RequestBody AdjustmentReceiptVoucher obj, @RequestHeader("Authorization") String jwt) throws Exception {
+			@RequestBody IcmObject obj, @RequestHeader("Authorization") String jwt) throws Exception {
+		logger.info("{}", obj);
 		return sundryDebtorsAndCreditorsService.saveAdjReceiptForIcmInvoices(obj, jwt, type);
 	}
 	

@@ -10,6 +10,7 @@ import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.entity.ReconciliationEntry;
 import com.tanfed.accounts.model.DataForIC;
+import com.tanfed.accounts.model.IcmObject;
 import com.tanfed.accounts.model.InvoiceCollectionObject;
 import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.response.DataForSundryDebtor;
@@ -41,7 +42,7 @@ public interface SundryDebtorsAndCreditorsService {
 
 	public ResponseEntity<String> updateICData(List<InvoiceCollectionObject> obj, String jwt) throws Exception;
 
-	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(AdjustmentReceiptVoucher obj, String jwt, String type)
+	public ResponseEntity<String> saveAdjReceiptForIcmInvoices(IcmObject obj, String jwt, String type)
 			throws Exception;
 
 	public void updateFundTransfered(List<String> invoiceNoList) throws Exception;

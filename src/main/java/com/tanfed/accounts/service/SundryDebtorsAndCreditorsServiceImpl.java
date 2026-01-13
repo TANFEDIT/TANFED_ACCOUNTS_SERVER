@@ -57,6 +57,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	private SundryDrCrTableRepo sundryDrCrTableRepo;
 
 	private static Logger logger = LoggerFactory.getLogger(SundryDebtorsAndCreditorsServiceImpl.class);
+
 	@Override
 	public DataForSundryDebtor getDataForSundryBills(String jwt, String ifmsId, String idNo, String officeName,
 			String month, String formType) throws Exception {
@@ -657,7 +658,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				code[0] = codeGenerator.icmNoGenerator(obj.get(0).getOfficeName());
 			}
 			logger.info("len {}", obj.size());
-			for(var temp : obj) {
+			for (var temp : obj) {
 				if ("invoiceAckEntry".equals(temp.getCollectionProcess())) {
 					SundryDrOb sundryDrOb = sundryDrObRepo.findByInvoiceNo(temp.getInvoiceNo());
 					sundryDrOb.setAckQty(temp.getAckQty());
@@ -722,6 +723,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					.collect(Collectors.toList()).get(0);
 			obj.getAdjData().setAccountType("Non PDS A/c");
 			obj.getAdjData().setAccountNo(bankInfo.getAccountNumber());
+			obj.getAdjData().setContraEntry("No");
 			ResponseEntity<String> responseEntity = adjustmentReceiptVoucherService
 					.saveAdjustmentReceiptVoucher(obj.getAdjData(), jwt);
 			String responseString = responseEntity.getBody();
@@ -837,6 +839,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					if (obj.getVoucherStatus().equals("Approved")) {
 						arv.setApprovedDate(LocalDate.now());
 						adjustmentReceiptVoucherService.updateClosingBalance(arv);
+						invoice.setCollectionValue(Arrays.asList(arv.getReceivedAmount()));
+						invoice.setDateOfCollectionFromCcb(new ArrayList<>(List.of(arv.getDateOfCollection())));
+						invoice.setTransferDone(false);
 					}
 					if (arv.getDesignation() == null) {
 						arv.setDesignation(Arrays.asList(designation));

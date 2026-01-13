@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class DataForPaymentVoucher {
 
 	private List<Long> accountNumList;
-	private List<String> beneficiaryNameList;
+	private Set<String> beneficiaryNameList;
 	private Set<String> accountTypeList;
 	private String branchName;
 	private Long beneficiaryAccountNo;

@@ -170,8 +170,8 @@ public class RegisterServiceImpl implements RegisterService {
 									.equals(month)
 							&& item.getContraEntry().equals("No")
 							&& (item.getSubHead().equals(subHead) || subHead.isEmpty()))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), null, null, item.getRemarks(),
-							item.getReceivedAmount(), null, "CDB"))
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getRemarks(), item.getReceivedAmount(), null, "CDB"))
 					.collect(Collectors.toList()));
 
 			table.addAll(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
@@ -180,8 +180,8 @@ public class RegisterServiceImpl implements RegisterService {
 									.equals(month)
 							&& item.getContraEntry().equals("No")
 							&& (item.getSubHead().equals(subHead) || subHead.isEmpty()))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), null, null,
-							item.getNarration(), item.getReceivedAmount(), null, "BDB"))
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getNarration(), item.getReceivedAmount(), null, "BDB"))
 					.collect(Collectors.toList()));
 
 			table.addAll(paymentVoucherService.getVoucherByOfficeName(officeName).stream()
@@ -191,8 +191,8 @@ public class RegisterServiceImpl implements RegisterService {
 							&& item.getContraEntry().equals("No")
 							&& (item.getSubHead().equals(subHead) || subHead.isEmpty())
 							&& item.getPvType().equals("Cash Payment Voucher"))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), null, null,
-							item.getNarration(), null, item.getAmount(), "CDB"))
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getNarration(), null, item.getAmount(), "CDB"))
 					.collect(Collectors.toList()));
 
 			table.addAll(paymentVoucherService.getVoucherByOfficeName(officeName).stream()
@@ -202,8 +202,8 @@ public class RegisterServiceImpl implements RegisterService {
 							&& item.getContraEntry().equals("No")
 							&& (item.getSubHead().equals(subHead) || subHead.isEmpty())
 							&& !item.getPvType().equals("Cash Payment Voucher"))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), null, null,
-							item.getNarration(), null, item.getAmount(), "BDB"))
+					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+							item.getSubHead(), item.getNarration(), null, item.getAmount(), "BDB"))
 					.collect(Collectors.toList()));
 
 			table.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
@@ -217,7 +217,8 @@ public class RegisterServiceImpl implements RegisterService {
 								.filter(data -> data.getDrOrCr().equals("Cr")
 										&& (data.getSubHead().equals(subHead) || subHead.isEmpty()))
 								.mapToDouble(sum -> sum.getAmount()).sum();
-						return new CashChittaTable(item.getVoucherNo(), item.getJvDate(), null, null,
+						return new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
+								item.getRows().get(0).getMainHead(), item.getRows().get(0).getSubHead(),
 								item.getNarration(), credit, debit, "JV");
 					}).collect(Collectors.toList()));
 			table.sort(Comparator.comparing(CashChittaTable::getDate));

@@ -221,10 +221,14 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			if (officeName != null && !officeName.isEmpty()) {
 				data.setBeneficiaryNameList(masterService.getBeneficiaryListByOfficeName(jwt, officeName).stream()
 						.filter(item -> item.getBeneficiaryApplicableToHoAccount().contains(mainHead))
-						.map(item -> item.getBeneficiaryName()).collect(Collectors.toList()));
+						.map(item -> item.getBeneficiaryName()).collect(Collectors.toSet()));
 
 				List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, officeName);
-
+				List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName)
+						.stream().filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
+				if (!pendingPvs.isEmpty()) {
+					throw new Exception("Approve previous Payment voucher!");
+				}
 				if (paidTo != null && !paidTo.isEmpty()) {
 					List<BeneficiaryMaster> collect = masterService.getBeneficiaryListByOfficeName(jwt, officeName)
 							.stream().filter(item -> item.getBeneficiaryName().equals(paidTo))
@@ -246,11 +250,6 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 										&& item.getAccountNumber().equals(Long.valueOf(accountNo)))
 								.map(BankInfo::getBranchName).collect(Collectors.toList()).get(0));
 
-						List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName)
-								.stream().filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
-						if (!pendingPvs.isEmpty()) {
-							throw new Exception("Approve previous Payment voucher!");
-						}
 					}
 				}
 				if (pvType.equals("Cash Payment Voucher") || pvType.equals("Online Payment Voucher")

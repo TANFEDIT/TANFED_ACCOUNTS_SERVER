@@ -12,8 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Invoice {
-	
-	private Long id;
+private Long id;
 	
 	private LocalDate createdAt = LocalDate.now();
 	
@@ -27,6 +26,12 @@ public class Invoice {
 	
 	private LocalDate approvedDate;
 	
+	
+//	@Embedded
+//	private FormDataInvoice formData;
+	
+//	@Embedded
+//	private IncentiveDataInvoice calData;
 	
 	private String invoiceNo;
 
@@ -52,7 +57,6 @@ public class Invoice {
 	  
 	private String ifmsId;
 	
-	private String invoiceFor;
 	
 	private String firmType;
 	  
@@ -100,9 +104,9 @@ public class Invoice {
 	
 	private String licenseNoGodown;
 
-	private String adjReceiptNo;
+	private List<String> adjReceiptNo;
 
-	private String adjReceiptStatus;
+	private List<String> adjReceiptStatus;
 
 	
 	  
@@ -117,7 +121,7 @@ public class Invoice {
 	
 	
 	
-	
+	private Boolean isShort;
 	
 	
 	
@@ -140,7 +144,7 @@ public class Invoice {
 	
 	private Double ackQty;
 	
-	private Double collectionValue;
+	private List<Double> collectionValue;
 	
 	private LocalDate ackEntryDate;
 	
@@ -152,7 +156,7 @@ public class Invoice {
 	
 	private String icmNo;
 	
-	private LocalDate dateOfCollectionFromCcb;
+	private List<LocalDate> dateOfCollectionFromCcb;
 	  
 	private String voucherStatusICP1;
 	
@@ -166,7 +170,6 @@ public class Invoice {
 	
 	private List<String> designationICP3;
 	
-	private String voucherStatusICP4;
 	
 	private List<String> designationICP4;
 	  

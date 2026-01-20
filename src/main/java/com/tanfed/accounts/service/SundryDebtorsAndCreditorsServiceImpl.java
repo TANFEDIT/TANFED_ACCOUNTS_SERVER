@@ -177,10 +177,10 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	public Double calculateSDrObValue(String month, String subHead, String officeName, String buyerName) {
 		List<SundryDrOb> sdrOb = sundryDrObRepo.findAll();
 //		if (month.equals("APRIL 2025")) {
-			return sdrOb.stream()
-					.filter(item -> item.getOfficeName().equals(officeName)
-							&& (item.getNameOfInstitution().equals(buyerName) || buyerName.isEmpty()))
-					.mapToDouble(item -> item.getAmount()).sum();
+		return sdrOb.stream()
+				.filter(item -> item.getOfficeName().equals(officeName) && item.getStatus().equals("Dr")
+						&& (item.getNameOfInstitution().equals(buyerName) || buyerName.isEmpty()))
+				.mapToDouble(item -> item.getAmount()).sum();
 //		} else {
 //			return prevSundryDrCrTableData(month, subHead, officeName, "Dr").getCb();
 //		}

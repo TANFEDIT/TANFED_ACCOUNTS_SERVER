@@ -19,10 +19,12 @@ import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
+import com.tanfed.accounts.entity.SundryDrOb;
 import com.tanfed.accounts.model.BuyerFirmInfo;
 import com.tanfed.accounts.model.CollectionRegisterTable;
 import com.tanfed.accounts.model.Invoice;
 import com.tanfed.accounts.model.SundryDebtorsRegister;
+import com.tanfed.accounts.repository.SundryDrObRepo;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
 import com.tanfed.accounts.response.JournalRegisterTable;
@@ -299,6 +301,10 @@ public class RegisterServiceImpl implements RegisterService {
 		}
 	}
 
+
+	@Autowired
+	private SundryDrObRepo sundryDrObRepo;
+	
 	@Override
 	public List<SundryDebtorsRegister> fetchSundryDebtorsData(String officeName, String month, String subHead,
 			String ifmsId, String firmType, String jwt) throws Exception {
@@ -312,6 +318,7 @@ public class RegisterServiceImpl implements RegisterService {
 			List<SundryDebtorsRegister> data = new ArrayList<SundryDebtorsRegister>();
 			String[] monthAndYr = month.split(" ");
 			YearMonth yearMonth = YearMonth.of(Integer.valueOf(monthAndYr[1]), Month.valueOf(monthAndYr[0]));
+			
 			data.addAll(invoiceData.stream().filter(i -> {
 				YearMonth yearMonthinvoice = YearMonth.from(i.getDate());
 				return (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))
@@ -320,6 +327,7 @@ public class RegisterServiceImpl implements RegisterService {
 				return new SundryDebtorsRegister(i.getDate(), "Sales invoice " + i.getInvoiceNo(),
 						i.getNetInvoiceAdjustment(), 0.0);
 			}).collect(Collectors.toList()));
+			
 			data.addAll(invoiceData.stream().filter(i -> i.getDateOfCollectionFromCcb() != null
 					&& (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))).flatMap(i -> {
 						List<LocalDate> dates = i.getDateOfCollectionFromCcb();
@@ -330,7 +338,27 @@ public class RegisterServiceImpl implements RegisterService {
 						}).mapToObj(idx -> new SundryDebtorsRegister(dates.get(idx),
 								"Collection invoice " + i.getInvoiceNo(), 0.0, amounts.get(idx)));
 					}).collect(Collectors.toList()));
-
+			
+			List<SundryDrOb> sundryDrOb = sundryDrObRepo.findByOfficeName(officeName);
+			data.addAll(sundryDrOb.stream().filter(i -> {
+				YearMonth yearMonthinvoice = YearMonth.from(i.getInvoiceDate());
+				return (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))
+						&& (yearMonthinvoice.equals(yearMonth) || yearMonthinvoice.isBefore(yearMonth));
+			}).map(i -> {
+				return new SundryDebtorsRegister(i.getInvoiceDate(), "Sales invoice " + i.getInvoiceNo(),
+						i.getAmount(), 0.0);
+			}).collect(Collectors.toList()));
+			
+			data.addAll(sundryDrOb.stream().filter(i -> i.getDateOfCollectionFromCcb() != null
+					&& (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))).flatMap(i -> {
+						List<LocalDate> dates = i.getDateOfCollectionFromCcb();
+						List<Double> amounts = i.getCollectionValue();
+						return IntStream.range(0, Math.min(dates.size(), amounts.size())).filter(idx -> {
+							YearMonth yearMonthinvoice = YearMonth.from(dates.get(idx));
+							return yearMonthinvoice.equals(yearMonth) || yearMonthinvoice.isBefore(yearMonth);
+						}).mapToObj(idx -> new SundryDebtorsRegister(dates.get(idx),
+								"Collection invoice " + i.getInvoiceNo(), 0.0, amounts.get(idx)));
+					}).collect(Collectors.toList()));
 			return data;
 //			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
 //			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()

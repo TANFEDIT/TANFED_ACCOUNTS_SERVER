@@ -32,7 +32,7 @@ public interface SundryDebtorsAndCreditorsService {
 
 	public void updateScrPv(PaymentVoucher pv, String jwt) throws Exception;
 
-	public Double calculateSDrObValue(String month, String subHead, String officeName);
+	public Double calculateSDrObValue(String month, String subHead, String officeName, String buyerName);
 
 	public Double calculateSCrObValue(String month, String subHead, String officeName);
 

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.tanfed.accounts.model.CollectionRegisterTable;
+import com.tanfed.accounts.model.SundryDebtorsRegister;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 public class Registers {
 
 	private List<CashChittaTable> cashChitta;
-	private List<CashChittaTable> sundryDebitorsRegister;
+	private List<SundryDebtorsRegister> sundryDebitorsRegister;
 	private List<CashChittaTable> sundryCreditorsRegister;
 	private List<CashChittaTable> supplierAdvanceRegister;
 	private List<CashDayBookTable> cashDayBook;

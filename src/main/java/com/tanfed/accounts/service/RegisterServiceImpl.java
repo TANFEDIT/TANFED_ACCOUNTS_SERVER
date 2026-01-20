@@ -1,11 +1,14 @@
 package com.tanfed.accounts.service;
 
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +21,8 @@ import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.model.BuyerFirmInfo;
 import com.tanfed.accounts.model.CollectionRegisterTable;
+import com.tanfed.accounts.model.Invoice;
+import com.tanfed.accounts.model.SundryDebtorsRegister;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
 import com.tanfed.accounts.response.JournalRegisterTable;
@@ -231,6 +236,9 @@ public class RegisterServiceImpl implements RegisterService {
 	@Autowired
 	private MasterService masterService;
 
+	@Autowired
+	private InventryService inventryService;
+
 	@Override
 	public List<CashChittaTable> fetchGeneralLedgerData(String officeName, String month, String jwt) throws Exception {
 		try {
@@ -292,67 +300,97 @@ public class RegisterServiceImpl implements RegisterService {
 	}
 
 	@Override
-	public List<CashChittaTable> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
-			String firmType, String jwt) throws Exception {
+	public List<SundryDebtorsRegister> fetchSundryDebtorsData(String officeName, String month, String subHead,
+			String ifmsId, String firmType, String jwt) throws Exception {
 		try {
-			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
-			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
-					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
-							&& item.getJvFor().equals("Sales Jv") && item.getJvType().equals("net")
-							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty())
-							&& validateFirmTypeByIfmsId(item.getIfmsId().get(0), firmType, jwt))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
-							joinJvHead(item.getRows().stream()
-									.filter(data -> data.getDrOrCr().equals("Dr")
-											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-											&& data.getSubHead().equals(subHead))
-									.map(data -> data.getMainHead()).collect(Collectors.toList())),
-							joinJvHead(item.getRows().stream()
-									.filter(data -> data.getDrOrCr().equals("Dr")
-											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-											&& data.getSubHead().equals(subHead))
-									.map(data -> data.getSubHead()).collect(Collectors.toList())),
-							item.getNarration(), null,
-							item.getRows().stream()
-									.filter(data -> data.getDrOrCr().equals("Dr")
-											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-											&& data.getSubHead().equals(subHead))
-									.mapToDouble(sum -> sum.getAmount()).sum(),
-							"JV"))
-					.collect(Collectors.toList()));
+			logger.info(ifmsId);
+			logger.info(firmType);
+			logger.info(month);
+			logger.info(subHead);
+			List<Invoice> invoiceData = inventryService.getInvoiceDataByOfficenameHandler(officeName, jwt);
 
-			list.addAll(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
-					.filter(item -> item.getVoucherStatus().equals("Approved")
-							&& (item.getVoucherFor().equals("Non-CC Invoice") || item.getVoucherFor().equals("ICM"))
-							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
-									.equals(month)
-							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
-							&& item.getSubHead().equals(subHead)
-							&& (item.getIfmsIdNo().equals(ifmsId) || ifmsId.isEmpty())
-							&& validateFirmTypeByIfmsId(item.getIfmsIdNo(), firmType, jwt))
-					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
-							item.getSubHead(), item.getNarration(), item.getReceivedAmount(), null, "ICM ADJ"))
-					.collect(Collectors.toList()));
-
-			list.addAll(sundryDebtorsAndCreditorsService.fetchReconciliationEntriesByOfficeName(officeName).stream()
-					.filter(item -> item.getFormType().equals("Dr") && item.getVoucherStatus().equals("Approved")
-							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
-									.equals(month)
-							&& (item.getIfmsId().equals(ifmsId) || ifmsId.isEmpty())
-							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
-							&& item.getSubHead().equals(subHead)
-							&& validateFirmTypeByIfmsId(item.getIfmsId(), firmType, jwt))
-					.map(item -> {
-						double credit = 0.0, debit = 0.0;
-						if (item.getIdNo().startsWith("DN")) {
-							debit = item.getAmount();
-						} else {
-							credit = item.getAmount();
-						}
-						return new CashChittaTable(item.getIdNo(), item.getDate(), item.getMainHead(),
-								item.getSubHead(), item.getRemarks(), credit, debit, "RECONCILIATION");
+			List<SundryDebtorsRegister> data = new ArrayList<SundryDebtorsRegister>();
+			String[] monthAndYr = month.split(" ");
+			YearMonth yearMonth = YearMonth.of(Integer.valueOf(monthAndYr[1]), Month.valueOf(monthAndYr[0]));
+			data.addAll(invoiceData.stream().filter(i -> {
+				YearMonth yearMonthinvoice = YearMonth.from(i.getDate());
+				return (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))
+						&& (yearMonthinvoice.equals(yearMonth) || yearMonthinvoice.isBefore(yearMonth));
+			}).map(i -> {
+				return new SundryDebtorsRegister(i.getDate(), "Sales invoice " + i.getInvoiceNo(),
+						i.getNetInvoiceAdjustment(), 0.0);
+			}).collect(Collectors.toList()));
+			data.addAll(invoiceData.stream().filter(i -> i.getDateOfCollectionFromCcb() != null
+					&& (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))).flatMap(i -> {
+						List<LocalDate> dates = i.getDateOfCollectionFromCcb();
+						List<Double> amounts = i.getCollectionValue();
+						return IntStream.range(0, Math.min(dates.size(), amounts.size())).filter(idx -> {
+							YearMonth yearMonthinvoice = YearMonth.from(dates.get(idx));
+							return yearMonthinvoice.equals(yearMonth) || yearMonthinvoice.isBefore(yearMonth);
+						}).mapToObj(idx -> new SundryDebtorsRegister(dates.get(idx),
+								"Collection invoice " + i.getInvoiceNo(), 0.0, amounts.get(idx)));
 					}).collect(Collectors.toList()));
-			return list;
+
+			return data;
+//			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
+//			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
+//					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
+//							&& item.getJvFor().equals("Sales Jv") && item.getJvType().equals("net")
+//							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty())
+//							&& validateFirmTypeByIfmsId(item.getIfmsId().get(0), firmType, jwt))
+//					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
+//							joinJvHead(item.getRows().stream()
+//									.filter(data -> data.getDrOrCr().equals("Dr")
+//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
+//											&& data.getSubHead().equals(subHead))
+//									.map(data -> data.getMainHead()).collect(Collectors.toList())),
+//							joinJvHead(item.getRows().stream()
+//									.filter(data -> data.getDrOrCr().equals("Dr")
+//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
+//											&& data.getSubHead().equals(subHead))
+//									.map(data -> data.getSubHead()).collect(Collectors.toList())),
+//							item.getNarration(), null,
+//							item.getRows().stream()
+//									.filter(data -> data.getDrOrCr().equals("Dr")
+//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
+//											&& data.getSubHead().equals(subHead))
+//									.mapToDouble(sum -> sum.getAmount()).sum(),
+//							"JV"))
+//					.collect(Collectors.toList()));
+//
+//			list.addAll(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
+//					.filter(item -> item.getVoucherStatus().equals("Approved")
+//							&& (item.getVoucherFor().equals("Non-CC Invoice") || item.getVoucherFor().equals("ICM"))
+//							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
+//									.equals(month)
+//							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
+//							&& item.getSubHead().equals(subHead)
+//							&& ifmsId.isEmpty()
+//							&& (validateFirmTypeByIfmsId(null, firmType, jwt) || firmType.isEmpty()))
+//					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
+//							item.getSubHead(), item.getNarration(), item.getReceivedAmount(), null, "ICM ADJ"))
+//					.collect(Collectors.toList()));
+//
+//			list.addAll(sundryDebtorsAndCreditorsService.fetchReconciliationEntriesByOfficeName(officeName).stream()
+//					.filter(item -> item.getFormType().equals("Dr") && item.getVoucherStatus().equals("Approved")
+//							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
+//									.equals(month)
+//							&& (item.getIfmsId().equals(ifmsId) || ifmsId.isEmpty())
+//							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
+//							&& item.getSubHead().equals(subHead)
+//							&& validateFirmTypeByIfmsId(item.getIfmsId(), firmType, jwt))
+//					.map(item -> {
+//						double credit = 0.0, debit = 0.0;
+//						if (item.getIdNo().startsWith("DN")) {
+//							debit = item.getAmount();
+//						} else {
+//							credit = item.getAmount();
+//						}
+//						return new CashChittaTable(item.getIdNo(), item.getDate(), item.getMainHead(),
+//								item.getSubHead(), item.getRemarks(), credit, debit, "RECONCILIATION");
+//					}).collect(Collectors.toList()));
+//			return list;
+
 		} catch (Exception e) {
 			throw new Exception(e);
 		}

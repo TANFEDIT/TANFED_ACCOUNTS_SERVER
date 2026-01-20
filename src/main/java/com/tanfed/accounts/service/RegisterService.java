@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.tanfed.accounts.model.CollectionRegisterTable;
+import com.tanfed.accounts.model.SundryDebtorsRegister;
 import com.tanfed.accounts.response.CashChittaTable;
 import com.tanfed.accounts.response.CashDayBookTable;
 import com.tanfed.accounts.response.JournalRegisterTable;
@@ -24,7 +25,7 @@ public interface RegisterService {
 
 	public List<CashChittaTable> fetchGeneralLedgerData(String officeName, String month, String jwt) throws Exception;
 
-	public List<CashChittaTable> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
+	public List<SundryDebtorsRegister> fetchSundryDebtorsData(String officeName, String month, String subHead, String ifmsId,
 			String firmType, String jwt) throws Exception;
 
 	public List<CashChittaTable> fetchSundryCreditorsData(String officeName, String month, String subHead, String supplierName)

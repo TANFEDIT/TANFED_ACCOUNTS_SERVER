@@ -156,7 +156,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				.collect(Collectors.toList());
 		subHeadList.forEach(subHead -> {
 			double ob = drCr.equals("Cr") ? calculateSCrObValue(month, subHead, officeName)
-					: calculateSDrObValue(month, subHead, officeName);
+					: calculateSDrObValue(month, subHead, officeName, null);
 			SundryDrCrTable sundryDrCrTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(month,
 					subHead, officeName, drCr);
 			double debit = 0.0, otherDebit = 0.0, credit = 0.0, otherCredit = 0.0;
@@ -174,15 +174,16 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 	}
 
 	@Override
-	public Double calculateSDrObValue(String month, String subHead, String officeName) {
+	public Double calculateSDrObValue(String month, String subHead, String officeName, String buyerName) {
 		List<SundryDrOb> sdrOb = sundryDrObRepo.findAll();
-		if (month.equals("APRIL 2025")) {
+//		if (month.equals("APRIL 2025")) {
 			return sdrOb.stream()
-					.filter(item -> item.getSubHead().equals(subHead) && item.getOfficeName().equals(officeName))
+					.filter(item -> item.getOfficeName().equals(officeName)
+							&& (item.getNameOfInstitution().equals(buyerName) || buyerName.isEmpty()))
 					.mapToDouble(item -> item.getAmount()).sum();
-		} else {
-			return prevSundryDrCrTableData(month, subHead, officeName, "Dr").getCb();
-		}
+//		} else {
+//			return prevSundryDrCrTableData(month, subHead, officeName, "Dr").getCb();
+//		}
 	}
 
 	@Override

@@ -360,19 +360,19 @@ public class BillsAccountsHandler {
 		Registers data = new Registers();
 		switch (formType) {
 		case "sundryDebitorsRegister": {
-			List<String> subHeadList = masterService.accountsMasterListHandler(jwt).stream()
-					.filter(item -> item.getMainHead().equals("H.O a/c - Sundry Debtors"))
-					.map(item -> item.getSubHead()).collect(Collectors.toList());
+//			List<String> subHeadList = masterService.accountsMasterListHandler(jwt).stream()
+//					.filter(item -> item.getMainHead().equals("H.O a/c - Sundry Debtors"))
+//					.map(item -> item.getSubHead()).collect(Collectors.toList());
 			List<BuyerFirmInfo> buyerData = masterService.getBuyerDataByOfficeNameHandler(officeName, jwt);
-			data.setSubHeadList(subHeadList);
+//			data.setSubHeadList(subHeadList);
 			data.setDistrictList(buyerData.stream().map(item -> item.getDistrict()).collect(Collectors.toSet()));
 			data.setIfmsIdList(buyerData.stream().filter(item -> item.getDistrict().equals(district))
 					.map(item -> item.getNameOfInstitution()).collect(Collectors.toList()));
-			List<CashChittaTable> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
+			List<SundryDebtorsRegister> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
 					subHead, ifmsId, firmType, jwt);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);
-			if (month != null && !month.isEmpty() && subHead != null && !subHead.isEmpty()) {
-				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName));
+			if (month != null && !month.isEmpty()) {
+				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName, ifmsId));
 			}
 			return data;
 		}

@@ -153,7 +153,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 					try {
 						AdjustmentReceiptVoucher AdjustmentReceiptVoucher = new AdjustmentReceiptVoucher(null, null,
 								item.getVoucherNo(), item.getOfficeName(), null, null, null, null, item.getOnlineDate(),
-								"Reversed", null, null, null, item.getAmount(), "Other Online", item.getUtrNumber(),
+								"Reversed", null, null, item.getAmount(), "Other Online", item.getUtrNumber(),
 								item.getOnlineDate(), item.getBranchName(), item.getMainHead(), item.getSubHead(),
 								item.getNarration(), "No", null, item.getAccountType(), item.getAccountNo(),
 								item.getBranchName(), item.getOnlineDate(), null, null, null);

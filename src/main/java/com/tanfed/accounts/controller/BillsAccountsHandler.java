@@ -223,7 +223,7 @@ public class BillsAccountsHandler {
 					if (!openingBalance.isEmpty()) {
 						obCa = openingBalance.stream().filter(item -> item.getAccountType().equals("Current A/c"))
 								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
-						obNpa = openingBalance.stream().filter(item -> item.getAccountType().equals("Non PDS A/c"))
+						obNpa = openingBalance.stream().filter(item -> item.getAccountType().equals("Non PDS A/c Fert"))
 								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
 						obSa = openingBalance.stream().filter(item -> item.getAccountType().equals("Savings A/c"))
 								.mapToDouble(OpeningBalance::getPassbookAmount).sum();
@@ -233,7 +233,7 @@ public class BillsAccountsHandler {
 				} else {
 					obSa = fetchBalanceByAccType("Savings A/c", date, officeName);
 					obCa = fetchBalanceByAccType("Current A/c", date, officeName);
-					obNpa = fetchBalanceByAccType("Non PDS A/c", date, officeName);
+					obNpa = fetchBalanceByAccType("Non PDS A/c Fert", date, officeName);
 				}
 				data.setObSa(obSa);
 				data.setObCa(obCa);

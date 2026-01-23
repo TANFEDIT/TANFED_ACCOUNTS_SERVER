@@ -719,10 +719,10 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			logger.info("{}", obj);
 			BankInfo bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, obj.getAdjData().getOfficeName())
 					.stream()
-					.filter(itemData -> itemData.getAccountType().equals("Non PDS A/c")
+					.filter(itemData -> itemData.getAccountType().equals("Non PDS A/c Fert")
 							&& itemData.getBranchName().equals(obj.getAdjData().getBranchName()))
 					.collect(Collectors.toList()).get(0);
-			obj.getAdjData().setAccountType("Non PDS A/c");
+			obj.getAdjData().setAccountType("Non PDS A/c Fert");
 			obj.getAdjData().setAccountNo(bankInfo.getAccountNumber());
 			obj.getAdjData().setContraEntry("No");
 			ResponseEntity<String> responseEntity = adjustmentReceiptVoucherService

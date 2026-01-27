@@ -11,6 +11,7 @@ import com.tanfed.accounts.entity.ContraEntry;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.model.BankInfo;
 import com.tanfed.accounts.model.VoucherApproval;
+import com.tanfed.accounts.repository.AdjustmentReceiptVoucherRepo;
 import com.tanfed.accounts.repository.ContraEntryRepo;
 import com.tanfed.accounts.service.AdjustmentReceiptVoucherService;
 import com.tanfed.accounts.service.MasterService;
@@ -29,8 +30,8 @@ public class InterTransferReceipts {
 	private AdjustmentReceiptVoucherService adjustmentReceiptVoucherService;
 
 	@Autowired
-	private VoucherApprovalService voucherApprovalService;
-	
+	private AdjustmentReceiptVoucherRepo adjustmentReceiptVoucherRepo;
+
 	public void createInterTransferAdjVoucher(PaymentVoucher pv, String jwt) throws Exception {
 		ContraEntry contraEntry = contraEntryRepo.findByContraId(pv.getContraId());
 		if (contraEntry == null) {
@@ -62,7 +63,8 @@ public class InterTransferReceipts {
 		adjustmentReceiptVoucherService.saveAdjustmentReceiptVoucher(adj, jwt);
 		AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
 				.getAdjustmentReceiptVoucherByContraId(adj.getContraId());
-		voucherApprovalService.updateVoucherApproval(new VoucherApproval("Approved",
-				adjustmentReceiptVoucher.getId().toString(), "adjustmentReceiptVoucher", null), jwt);
+		adjustmentReceiptVoucher.setVoucherStatus("Approved");
+		adjustmentReceiptVoucherRepo.save(adjustmentReceiptVoucher);
+		adjustmentReceiptVoucherService.updateClosingBalance(adjustmentReceiptVoucher);
 	}
 }

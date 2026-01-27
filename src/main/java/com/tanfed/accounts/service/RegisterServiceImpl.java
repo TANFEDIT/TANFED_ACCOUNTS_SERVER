@@ -20,7 +20,6 @@ import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.entity.SundryDrOb;
-import com.tanfed.accounts.model.BuyerFirmInfo;
 import com.tanfed.accounts.model.CollectionRegisterTable;
 import com.tanfed.accounts.model.Invoice;
 import com.tanfed.accounts.model.SundryDebtorsRegister;
@@ -424,15 +423,15 @@ public class RegisterServiceImpl implements RegisterService {
 		}
 	}
 
-	private Boolean validateFirmTypeByIfmsId(String ifmsId, String firmType, String jwt) {
-		try {
-			BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt, ifmsId);
-			return buyerFirmInfo.getFirmType().equals(firmType) ? true : false;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
+//	private Boolean validateFirmTypeByIfmsId(String ifmsId, String firmType, String jwt) {
+//		try {
+//			BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt, ifmsId);
+//			return buyerFirmInfo.getFirmType().equals(firmType) ? true : false;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return false;
+//		}
+//	}
 
 	private String joinJvHead(List<String> head) {
 		return String.join(", ", head);

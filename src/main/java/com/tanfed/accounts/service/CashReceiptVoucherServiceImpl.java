@@ -125,13 +125,13 @@ public class CashReceiptVoucherServiceImpl implements CashReceiptVoucherService 
 		}
 	}
 
-//	@Override
-//	public CashReceiptVoucher getCashReceiptVoucherByContraId(String contraId) throws Exception {
-//		try {
-//			return cashReceiptRepo.findByContraId(contraId);
-//		} catch (Exception e) {
-//			throw new Exception(e);
-//		}
-//	}
+	@Override
+	public CashReceiptVoucher getCashReceiptVoucherByContraId(String contraId) throws Exception {
+		try {
+			return cashReceiptRepo.findByContraId(contraId);
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
 
 }

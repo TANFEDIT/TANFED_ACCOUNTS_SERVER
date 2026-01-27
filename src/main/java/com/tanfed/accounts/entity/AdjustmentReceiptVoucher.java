@@ -72,7 +72,7 @@ public class AdjustmentReceiptVoucher{
 	
 	private LocalDate depositDate;
 	
-	
+	private String contraId;
 	
 	
 	private Double bankCharges;

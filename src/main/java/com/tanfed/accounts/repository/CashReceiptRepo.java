@@ -14,7 +14,7 @@ public interface CashReceiptRepo extends JpaRepository<CashReceiptVoucher, Long>
 
 	public Optional<CashReceiptVoucher> findByVoucherNo(String voucherNo);
 
-//	public CashReceiptVoucher findByContraId(String contraId);
+	public CashReceiptVoucher findByContraId(String contraId);
 	
 	public List<CashReceiptVoucher> findByOfficeName(String officeName);
 	

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tanfed.accounts.dto.ContraEntryDto;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.*;
 import com.tanfed.accounts.response.*;
@@ -35,6 +36,9 @@ public class AccountsController {
 
 	@Autowired
 	private CashReceiptVoucherService cashReceiptVoucher;
+	
+	@Autowired
+	private ContraVoucherService contraVoucherService;
 
 	@Autowired
 	private AdjustmentReceiptVoucherService adjustmentReceiptVoucher;
@@ -60,6 +64,13 @@ public class AccountsController {
 	public ResponseEntity<String> saveOpeningBalanceHandler(@RequestBody OpeningBalanceDto obj,
 			@RequestHeader("Authorization") String jwt) throws Exception {
 		return openingBalanceService.saveOpeningBalance(obj, jwt);
+	}
+
+	@PostMapping("/contraentry")
+	@PreAuthorize("hasAnyRole('ROLE_SUPERADMIN', 'ROLE_ACCADMIN', 'ROLE_ACCUSER', 'ROLE_ROADMIN', 'ROLE_ROUSER')")
+	public ResponseEntity<String> saveContraEntryHandler(@RequestBody ContraEntryDto obj,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		return contraVoucherService.saveContraEntry(obj, jwt);
 	}
 
 	@PostMapping("/accvouchers/{formType}")
@@ -296,11 +307,14 @@ public class AccountsController {
 	}
 
 	@GetMapping("/fetchdataforcontra")
-	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName, @RequestParam String contraBetween,
-			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contraFromDate,
-			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contraToDate)
-			throws Exception {
-		return contraVoucher.getDataForContraEntry(officeName, contraBetween, contraFromDate, contraToDate);
+	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName,
+			@RequestParam String receiptAccountNo, @RequestParam String contraBetween,
+			@RequestParam String paymentAccType, @RequestParam String paidTo, @RequestParam String receiptAccType,
+			@RequestParam String pvType, @RequestParam String paymentAccountNo,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+			@RequestHeader("Authorization") String jwt) throws Exception {
+		return contraVoucher.getDataForContraEntry(officeName, jwt, paymentAccType, pvType, contraBetween,
+				receiptAccType, date, paymentAccountNo, receiptAccountNo, paidTo);
 	}
 
 	@GetMapping("/accob/validate/{officeName}")

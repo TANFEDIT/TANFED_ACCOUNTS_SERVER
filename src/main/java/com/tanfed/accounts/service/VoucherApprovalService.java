@@ -121,7 +121,6 @@ public class VoucherApprovalService {
 					.orElse(null);
 			designation = userService.getNewDesignation(empId);
 			oldDesignation = arv.getDesignation();
-			logger.info("inside switch case");
 			arv.setVoucherStatus(obj.getVoucherStatus());
 			arv.getEmpId().add(empId);
 			if (obj.getVoucherStatus().equals("Approved")) {
@@ -155,6 +154,9 @@ public class VoucherApprovalService {
 
 			pv.setVoucherStatus(obj.getVoucherStatus());
 			pv.getEmpId().add(empId);
+			if(pv.getContraEntry().equals("Yes")) {
+				paymentVoucherService.updateVoucherStatusForContra(pv, jwt);
+			}
 			if (obj.getVoucherStatus().equals("Approved")) {
 				pv.setApprovedDate(LocalDate.now());
 				paymentVoucherService.updateClosingBalance(pv);

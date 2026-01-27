@@ -13,10 +13,13 @@ import org.springframework.stereotype.Service;
 
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
+import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.ClosingBalanceTable;
+import com.tanfed.accounts.entity.ContraEntry;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.model.BankInfo;
 import com.tanfed.accounts.model.BeneficiaryMaster;
+import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.ClosingBalanceRepo;
 import com.tanfed.accounts.repository.PaymentVoucherRepo;
 import com.tanfed.accounts.response.DataForPaymentVoucher;
@@ -97,8 +100,8 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		try {
 			return paymentVoucherRepo.findByOfficeName(officeName).stream().filter(item -> {
 				return item.getPvType().equals("Cash Payment Voucher") && !item.getDate().isBefore(fromDate)
-						&& item.getVoucherStatus().equals("Approved")
-						&& !item.getDate().isAfter(toDate) && item.getPaidOn() == null;
+						&& item.getVoucherStatus().equals("Approved") && !item.getDate().isAfter(toDate)
+						&& item.getPaidOn() == null;
 			}).collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new Exception(e);
@@ -139,6 +142,9 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 	@Autowired
 	private AdjustmentReceiptVoucherService adjustmentReceiptVoucherService;
 
+	@Autowired
+	private ContraVoucherService contraVoucherService;
+
 	@Override
 	public ResponseEntity<String> paymentVoucherOnlineUpdate(List<PaymentVoucher> obj, String jwt) throws Exception {
 		try {
@@ -156,11 +162,18 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								"Reversed", null, null, item.getAmount(), "Other Online", item.getUtrNumber(),
 								item.getOnlineDate(), item.getBranchName(), item.getMainHead(), item.getSubHead(),
 								item.getNarration(), "No", null, item.getAccountType(), item.getAccountNo(),
-								item.getBranchName(), item.getOnlineDate(), null, null, null);
+								item.getBranchName(), item.getOnlineDate(), null, null, null, null);
 						adjustmentReceiptVoucherService.saveAdjustmentReceiptVoucher(AdjustmentReceiptVoucher, jwt);
 					} catch (Exception e) {
-
 						e.printStackTrace();
+					}
+				} else {
+					if (item.getContraEntry().equals("Yes")) {
+						try {
+							contraVoucherService.createInterTransferAdjVoucher(item, jwt);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				}
 				paymentVoucherRepo.save(paymentVoucher);
@@ -181,8 +194,8 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				return item.getPvType().equals("Cheque Payment Voucher") && !item.getDate().isBefore(fromDate)
 						&& !item.getDate().isAfter(toDate) && item.getChequeNumber() == null
 						&& item.getChequeDate() == null && item.getIssueBankName() == null
-						&& item.getVoucherStatus().equals("Approved")
-						&& item.getSettledDate() == null && item.getStatus() == null;
+						&& item.getVoucherStatus().equals("Approved") && item.getSettledDate() == null
+						&& item.getStatus() == null;
 			}).collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new Exception(e);
@@ -201,6 +214,15 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				paymentVoucher.setIssueBankName(item.getIssueBankName());
 				paymentVoucher.setSettledDate(item.getSettledDate());
 				paymentVoucher.setStatus(item.getStatus());
+				if (!item.getStatus().equals("Amount Returned")) {
+					if (item.getContraEntry().equals("Yes")) {
+						try {
+							contraVoucherService.createInterTransferAdjVoucher(item, jwt);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
 				paymentVoucherRepo.save(paymentVoucher);
 			});
 
@@ -224,8 +246,8 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 						.map(item -> item.getBeneficiaryName()).collect(Collectors.toSet()));
 
 				List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, officeName);
-				List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName)
-						.stream().filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
+				List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName).stream()
+						.filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
 				if (!pendingPvs.isEmpty()) {
 					throw new Exception("Approve previous Payment voucher!");
 				}
@@ -249,7 +271,6 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								.filter(item -> item.getAccountType().equals(accountType)
 										&& item.getAccountNumber().equals(Long.valueOf(accountNo)))
 								.map(BankInfo::getBranchName).collect(Collectors.toList()).get(0));
-
 					}
 				}
 				if (pvType.equals("Cash Payment Voucher") || pvType.equals("Online Payment Voucher")
@@ -382,6 +403,32 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			paymentVoucher.getEmpId().add(empId);
 			paymentVoucher.setVoucherStatus("Rejected");
 			paymentVoucherRepo.save(paymentVoucher);
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	@Autowired
+	private VoucherApprovalService voucherApprovalService;
+
+	@Autowired
+	private CashReceiptVoucherService cashReceiptVoucherService;
+
+	@Override
+	public void updateVoucherStatusForContra(PaymentVoucher pv, String jwt) throws Exception {
+		try {
+			ContraEntry contraEntry = contraVoucherService.getContraById(pv.getContraId());
+			if (contraEntry.getContraBetween().startsWith("Cash")) {
+				AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
+						.getAdjustmentReceiptVoucherByContraId(pv.getContraId());
+				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
+						adjustmentReceiptVoucher.getId().toString(), "adjustmentReceiptVoucher", null), jwt);
+			} else if (contraEntry.getContraBetween().equals("Bank to Cash")) {
+				CashReceiptVoucher cashReceiptVoucher = cashReceiptVoucherService
+						.getCashReceiptVoucherByContraId(pv.getContraId());
+				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
+						cashReceiptVoucher.getId().toString(), "cashReceiptVoucher", null), jwt);
+			}
 		} catch (Exception e) {
 			throw new Exception(e);
 		}

@@ -1,10 +1,7 @@
 package com.tanfed.accounts.response;
 
 import java.util.List;
-
-import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
-import com.tanfed.accounts.entity.CashReceiptVoucher;
-import com.tanfed.accounts.entity.PaymentVoucher;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,16 +12,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DataForContraEntry {
 
-	private List<PaymentVoucher> paymentList;
-	private List<AdjustmentReceiptVoucher> adjReceiptList;
-	private List<CashReceiptVoucher> cashReceiptList;
-	
-	private Double receiptAmount;
-	private Double paymentAmount;
-	
-	private String receiptAccType;
-	private String paymentAccType;
-	
-	private Long receiptAccNo;
-	private Long paymentAccNo;
+	private Set<String> paymentAccountTypeList;
+	private Set<String> receiptAccountTypeList;
+	private List<String> officeNameList;
+	private List<Long> paymentAccNoList;
+	private String PaymentBranchName;
+	private List<Long> receiptAccNoList;
+	private String receiptBranchName;
+	private Double balance;
 }

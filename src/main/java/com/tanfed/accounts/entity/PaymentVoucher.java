@@ -78,7 +78,7 @@ public class PaymentVoucher {
 	private LocalDate settledDate;
 	
 	private String contraEntry;
-//	private String contraId;
+	private String contraId;
 	
 
 	

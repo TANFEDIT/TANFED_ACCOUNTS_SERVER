@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.InterTransferReceipts;
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.ClosingBalanceTable;
@@ -140,7 +141,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 	private AdjustmentReceiptVoucherService adjustmentReceiptVoucherService;
 
 	@Autowired
-	private ContraVoucherService contraVoucherService;
+	private InterTransferReceipts contraVoucherService;
 
 	@Override
 	public ResponseEntity<String> paymentVoucherOnlineUpdate(List<PaymentVoucher> obj, String jwt) throws Exception {
@@ -405,5 +406,6 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		}
 	}
 
+	
 
 }

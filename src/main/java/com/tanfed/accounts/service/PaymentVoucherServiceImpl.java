@@ -13,13 +13,10 @@ import org.springframework.stereotype.Service;
 
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
-import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.ClosingBalanceTable;
-import com.tanfed.accounts.entity.ContraEntry;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.model.BankInfo;
 import com.tanfed.accounts.model.BeneficiaryMaster;
-import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.ClosingBalanceRepo;
 import com.tanfed.accounts.repository.PaymentVoucherRepo;
 import com.tanfed.accounts.response.DataForPaymentVoucher;
@@ -408,30 +405,5 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		}
 	}
 
-	@Autowired
-	private VoucherApprovalService voucherApprovalService;
-
-	@Autowired
-	private CashReceiptVoucherService cashReceiptVoucherService;
-
-	@Override
-	public void updateVoucherStatusForContra(PaymentVoucher pv, String jwt) throws Exception {
-		try {
-			ContraEntry contraEntry = contraVoucherService.getContraById(pv.getContraId());
-			if (contraEntry.getContraBetween().startsWith("Cash")) {
-				AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
-						.getAdjustmentReceiptVoucherByContraId(pv.getContraId());
-				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
-						adjustmentReceiptVoucher.getId().toString(), "adjustmentReceiptVoucher", null), jwt);
-			} else if (contraEntry.getContraBetween().equals("Bank to Cash")) {
-				CashReceiptVoucher cashReceiptVoucher = cashReceiptVoucherService
-						.getCashReceiptVoucherByContraId(pv.getContraId());
-				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
-						cashReceiptVoucher.getId().toString(), "cashReceiptVoucher", null), jwt);
-			}
-		} catch (Exception e) {
-			throw new Exception(e);
-		}
-	}
 
 }

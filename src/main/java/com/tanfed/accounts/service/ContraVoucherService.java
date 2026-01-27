@@ -22,6 +22,8 @@ public interface ContraVoucherService {
 	public ContraEntry getContraById(String contraId) throws Exception;
 //	public ResponseEntity<String> updateContraEntry(String fromNo, String toNo, String narration) throws Exception;
 
+	public void updateVoucherStatusForContra(PaymentVoucher pv, String jwt) throws Exception;
+
 //	public List<ContraEntry> getContraEntryData(String officeName) throws Exception;
 
 //	public ResponseEntity<String> rejectContraEntry(String fromNo, String toNo) throws Exception;

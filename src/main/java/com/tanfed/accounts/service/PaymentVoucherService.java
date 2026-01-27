@@ -43,5 +43,4 @@ public interface PaymentVoucherService {
 	
 	public void revertSupplierAdvancePv(PaymentVoucher obj, String jwt) throws Exception;
 
-	public void updateVoucherStatusForContra(PaymentVoucher pv, String jwt) throws Exception;
 }

@@ -60,6 +60,9 @@ public class VoucherApprovalService {
 	private InventryService inventryService;
 
 	@Autowired
+	private ContraVoucherService contraVoucherService;
+
+	@Autowired
 	private UserService userService;
 
 	private Logger logger = LoggerFactory.getLogger(VoucherApprovalService.class);
@@ -154,8 +157,8 @@ public class VoucherApprovalService {
 
 			pv.setVoucherStatus(obj.getVoucherStatus());
 			pv.getEmpId().add(empId);
-			if(pv.getContraEntry().equals("Yes")) {
-				paymentVoucherService.updateVoucherStatusForContra(pv, jwt);
+			if (pv.getContraEntry().equals("Yes")) {
+				contraVoucherService.updateVoucherStatusForContra(pv, jwt);
 			}
 			if (obj.getVoucherStatus().equals("Approved")) {
 				pv.setApprovedDate(LocalDate.now());

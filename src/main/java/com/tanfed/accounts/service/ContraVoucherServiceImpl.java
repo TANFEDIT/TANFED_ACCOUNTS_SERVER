@@ -212,4 +212,24 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 		}
 	}
 
+	@Override
+	public void updateVoucherStatusForContra(PaymentVoucher pv, String jwt) throws Exception {
+		try {
+			ContraEntry contraEntry = contraEntryRepo.findByContraId(pv.getContraId());
+			if (contraEntry.getContraBetween().startsWith("Cash")) {
+				AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
+						.getAdjustmentReceiptVoucherByContraId(pv.getContraId());
+				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
+						adjustmentReceiptVoucher.getId().toString(), "adjustmentReceiptVoucher", null), jwt);
+			} else if (contraEntry.getContraBetween().equals("Bank to Cash")) {
+				CashReceiptVoucher cashReceiptVoucher = cashReceiptVoucherService
+						.getCashReceiptVoucherByContraId(pv.getContraId());
+				voucherApprovalService.updateVoucherApproval(new VoucherApproval(pv.getVoucherStatus(),
+						cashReceiptVoucher.getId().toString(), "cashReceiptVoucher", null), jwt);
+			}
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
 }

@@ -17,7 +17,6 @@ public interface ContraVoucherService {
 
 	public ResponseEntity<String> saveContraEntry(ContraEntryDto obj, String jwt) throws Exception;
 
-	public void createInterTransferAdjVoucher(PaymentVoucher pv, String jwt) throws Exception;
 
 	public ContraEntry getContraById(String contraId) throws Exception;
 //	public ResponseEntity<String> updateContraEntry(String fromNo, String toNo, String narration) throws Exception;

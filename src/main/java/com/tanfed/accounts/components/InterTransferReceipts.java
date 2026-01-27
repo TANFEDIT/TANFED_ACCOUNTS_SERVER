@@ -10,12 +10,10 @@ import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.ContraEntry;
 import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.model.BankInfo;
-import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.AdjustmentReceiptVoucherRepo;
 import com.tanfed.accounts.repository.ContraEntryRepo;
 import com.tanfed.accounts.service.AdjustmentReceiptVoucherService;
 import com.tanfed.accounts.service.MasterService;
-import com.tanfed.accounts.service.VoucherApprovalService;
 
 @Component
 public class InterTransferReceipts {
@@ -64,6 +62,7 @@ public class InterTransferReceipts {
 		AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
 				.getAdjustmentReceiptVoucherByContraId(adj.getContraId());
 		adjustmentReceiptVoucher.setVoucherStatus("Approved");
+		adjustmentReceiptVoucher.setApprovedDate(LocalDate.now());
 		adjustmentReceiptVoucherRepo.save(adjustmentReceiptVoucher);
 		adjustmentReceiptVoucherService.updateClosingBalance(adjustmentReceiptVoucher);
 	}

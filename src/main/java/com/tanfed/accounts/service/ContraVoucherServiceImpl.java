@@ -21,6 +21,7 @@ import com.tanfed.accounts.repository.CashReceiptRepo;
 import com.tanfed.accounts.repository.ContraEntryRepo;
 import com.tanfed.accounts.response.DataForContraEntry;
 import com.tanfed.accounts.response.DataForPaymentVoucher;
+import com.tanfed.accounts.utils.RoundToDecimalPlace;
 
 @Service
 public class ContraVoucherServiceImpl implements ContraVoucherService {
@@ -62,7 +63,8 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 						data.setPaymentAccNoList(dataForPaymentVoucher.getAccountNumList());
 						if (paymentAccountNo != null && !paymentAccountNo.isEmpty()) {
 							data.setPaymentBranchName(dataForPaymentVoucher.getBranchName());
-							data.setBalance(dataForPaymentVoucher.getBalance());
+							data.setBalance(
+									RoundToDecimalPlace.roundToTwoDecimalPlaces(dataForPaymentVoucher.getBalance()));
 						}
 					}
 				}
@@ -74,8 +76,9 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 				if (contraBetween.endsWith("Bank")) {
 					String office = paidTo.equals("Self") ? officeName : paidTo;
 					List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, office);
-					data.setReceiptAccountTypeList(
-							bankInfo.stream().map(BankInfo::getAccountType).collect(Collectors.toSet()));
+					data.setReceiptAccountTypeList(bankInfo.stream()
+							.filter(i -> paidTo.equals("Self") ? !i.getAccountType().equals(paymentAccType) : true)
+							.map(BankInfo::getAccountType).collect(Collectors.toSet()));
 					if (receiptAccType != null && !receiptAccType.isEmpty()) {
 						DataForPaymentVoucher dataForPaymentVoucher = paymentVoucherService.getDataForPaymentVoucher(
 								office, receiptAccType, receiptAccountNo, jwt, null, null, date, pvType);
@@ -85,6 +88,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 						}
 					}
 				}
+
 			}
 			return data;
 		} catch (Exception e) {

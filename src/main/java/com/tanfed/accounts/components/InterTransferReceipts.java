@@ -37,7 +37,8 @@ public class InterTransferReceipts {
 		}
 		AdjustmentReceiptVoucher adj = new AdjustmentReceiptVoucher();
 		adj.setDate(contraEntry.getDate());
-		adj.setOfficeName(contraEntry.getPaidTo());
+		adj.setOfficeName(contraEntry.getContraBetween().startsWith("Bank") ? contraEntry.getOfficeName()
+				: contraEntry.getPaidTo());
 		adj.setReceivedFrom(contraEntry.getReceivedFrom());
 		adj.setContraId(pv.getContraId());
 		adj.setReceivedAmount(contraEntry.getAmount());

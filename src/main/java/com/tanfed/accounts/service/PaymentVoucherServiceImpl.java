@@ -254,7 +254,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 							.stream().filter(item -> item.getBeneficiaryName().equals(paidTo))
 							.collect(Collectors.toList());
 					if (collect.isEmpty()) {
-						throw new Exception("No Beneficiary Found For " + paidTo);
+						throw new Exception("No Beneficiary Found For " + paidTo + " in " + officeName);
 					}
 					data.setBeneficiaryAccountNo(collect.get(0).getAccountNo());
 				}
@@ -405,7 +405,5 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			throw new Exception(e);
 		}
 	}
-
-	
 
 }

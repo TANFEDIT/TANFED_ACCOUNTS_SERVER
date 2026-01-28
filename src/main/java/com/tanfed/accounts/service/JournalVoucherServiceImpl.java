@@ -53,6 +53,9 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(jvNo);
+			obj.getRows().forEach(i -> {
+				i.setJv(obj);
+			});
 			journalVoucherRepo.save(obj);
 			return new ResponseEntity<>("JV Created Successfully\n JV Number : " + jvNo, HttpStatus.CREATED);
 		} catch (Exception e) {

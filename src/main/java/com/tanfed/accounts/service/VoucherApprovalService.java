@@ -54,9 +54,6 @@ public class VoucherApprovalService {
 	private DebitOrCreditNoteRepo debitOrCreditNoteRepo;
 
 	@Autowired
-	private SundryDebtorsAndCreditorsService sundryDebtorsAndCreditorsService;
-
-	@Autowired
 	private InventryService inventryService;
 
 	@Autowired
@@ -129,11 +126,8 @@ public class VoucherApprovalService {
 			if (obj.getVoucherStatus().equals("Approved")) {
 				arv.setApprovedDate(LocalDate.now());
 				adjustmentReceiptVoucherService.updateClosingBalance(arv);
-				if (arv.getVoucherFor().equals("Non-CC Invoice") || arv.getVoucherFor().equals("ICM")) {
-					sundryDebtorsAndCreditorsService.updateSdrAdjReceipt(arv, jwt);
-					if (arv.getVoucherFor().equals("Non-CC Invoice")) {
-						inventryService.approveNonCCInvoiceHandler(arv.getIcmInvNo(), jwt);
-					}
+				if (arv.getVoucherFor().equals("Non-CC Invoice")) {
+					inventryService.approveNonCCInvoiceHandler(arv.getIcmInvNo(), jwt);
 				}
 			}
 			if (obj.getVoucherStatus().equals("Rejected")) {
@@ -163,9 +157,7 @@ public class VoucherApprovalService {
 			if (obj.getVoucherStatus().equals("Approved")) {
 				pv.setApprovedDate(LocalDate.now());
 				paymentVoucherService.updateClosingBalance(pv);
-				if (pv.getVoucherFor().equals("CheckMemoGoods")) {
-					sundryDebtorsAndCreditorsService.updateScrPv(pv, jwt);
-				}
+
 			}
 			if (obj.getVoucherStatus().equals("Rejected")) {
 				if (pv.getVoucherFor().equals("supplier advance")) {
@@ -191,12 +183,6 @@ public class VoucherApprovalService {
 			jv.getEmpId().add(empId);
 			if (obj.getVoucherStatus().equals("Approved")) {
 				jv.setApprovedDate(LocalDate.now());
-				if (jv.getJvFor().equals("Sales Jv") && jv.getJvType().equals("net")) {
-					sundryDebtorsAndCreditorsService.updateSdrJV(jv, jwt, "Dr");
-				}
-				if (jv.getJvFor().equals("Purchase JV") && jv.getJvType().equals("net")) {
-					sundryDebtorsAndCreditorsService.updateSdrJV(jv, jwt, "Cr");
-				}
 			}
 			if (obj.getVoucherStatus().equals("Rejected")) {
 				if (jv.getJvFor().equals("supplier advance")) {
@@ -353,8 +339,6 @@ public class VoucherApprovalService {
 			reconEntry.getEmpId().add(empId);
 			if (obj.getVoucherStatus().equals("Approved")) {
 				reconEntry.setApprovedDate(LocalDate.now());
-				sundryDebtorsAndCreditorsService.updateSdrReconEntry(reconEntry, jwt);
-
 			}
 			if (oldDesignation == null) {
 				reconEntry.setDesignation(Arrays.asList(designation));

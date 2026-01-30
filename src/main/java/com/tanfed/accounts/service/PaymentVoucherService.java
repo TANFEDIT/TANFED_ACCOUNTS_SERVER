@@ -43,4 +43,6 @@ public interface PaymentVoucherService {
 	
 	public void revertSupplierAdvancePv(PaymentVoucher obj, String jwt) throws Exception;
 
+	public List<PaymentVoucher> fetchContraPvForUpdateHandler(String formType, String officeName) throws Exception;
+
 }

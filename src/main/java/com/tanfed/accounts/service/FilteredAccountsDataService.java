@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.dto.ContraEntryViewDto;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.AccountsMaster;
 import com.tanfed.accounts.model.BeneficiaryMaster;
@@ -28,6 +29,9 @@ public class FilteredAccountsDataService {
 
 	@Autowired
 	private CashReceiptVoucherService cashReceiptVoucherService;
+
+	@Autowired
+	private ContraVoucherService contraVoucherService;
 
 	@Autowired
 	private CashReceiptRepo cashReceiptRepo;
@@ -243,11 +247,22 @@ public class FilteredAccountsDataService {
 			data.setPaymentVoucher(paymentVouchers);
 			return data;
 		}
-//		case "contraEntry": {
-//			List<ContraEntry> contraEntryData = contraVoucherService.getContraEntryData(officeName);
-//			data.setContraEntry(contraEntryData);
-//			return data;
-//		}
+		case "contraEntry": {
+			List<ContraEntryViewDto> contraList = new ArrayList<ContraEntryViewDto>();
+			List<ContraEntryViewDto> mappedContra = fetchMappedContra(officeName);
+			if (fromDate != null && toDate != null) {
+				contraList = mappedContra.stream()
+						.filter(i -> (!i.getDate().isBefore(fromDate) && !i.getDate().isAfter(toDate))
+								&& (i.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty()))
+						.collect(Collectors.toList());
+			} else {
+				contraList.addAll(mappedContra.stream()
+						.filter(i -> (i.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty()))
+						.collect(Collectors.toList()));
+			}
+			data.setContraEntry(contraList);
+			return data;
+		}
 		case "journalVoucher": {
 			List<JournalVoucher> journalVouchers = new ArrayList<JournalVoucher>();
 			List<JournalVoucher> filteredLst = null;
@@ -258,7 +273,6 @@ public class FilteredAccountsDataService {
 						.collect(Collectors.toList());
 			}
 			if (voucherNo != null && !voucherNo.isEmpty()) {
-
 				journalVouchers.add(journalVoucherRepo.findByVoucherNo(voucherNo).get());
 			} else {
 				if (voucherStatus.equals("Pending")) {
@@ -331,6 +345,53 @@ public class FilteredAccountsDataService {
 			throw new IllegalArgumentException("Unexpected value: " + formType);
 		}
 
+	}
+
+	private List<ContraEntryViewDto> fetchMappedContra(String officeName) throws Exception {
+		List<ContraEntryViewDto> contraEntry = new ArrayList<ContraEntryViewDto>();
+		List<ContraEntry> contraEntryData = contraVoucherService.getContraByOfficeName(officeName);
+		for (var contra : contraEntryData) {
+			ContraEntryViewDto obj = new ContraEntryViewDto();
+			obj.setContraBetween(contra.getContraBetween());
+			obj.setDate(contra.getDate());
+			PaymentVoucher pv = fetchContraPv(contra.getContraId());
+			obj.setId(pv.getId());
+			obj.setPaymentNo(pv.getVoucherNo());
+			obj.setPaymentMainHead(pv.getMainHead());
+			obj.setPaymentSubHead(pv.getSubHead());
+			obj.setPaymentAmount(pv.getAmount());
+			obj.setVoucherStatus(pv.getVoucherStatus());
+			if (contra.getContraBetween().endsWith("Cash")) {
+				CashReceiptVoucher crv = fetchContraCv(contra.getContraId());
+				obj.setReceiptNo(crv.getVoucherNo());
+				obj.setReceiptMainHead(crv.getMainHead());
+				obj.setReceiptSubHead(crv.getSubHead());
+				obj.setReceiptAmount(crv.getReceivedAmount());
+			} else {
+				AdjustmentReceiptVoucher arv = fetchContraArv(contra.getContraId());
+				obj.setReceiptNo(arv == null ? null : arv.getVoucherNo());
+				obj.setReceiptMainHead(arv == null ? null : arv.getMainHead());
+				obj.setReceiptSubHead(arv == null ? null : arv.getSubHead());
+				obj.setReceiptAmount(arv == null ? null : arv.getReceivedAmount());
+			}
+			if (contra.getContraBetween().startsWith("RO") || contra.getContraBetween().startsWith("HO")) {
+				obj.setToRegion(contra.getPaidTo());
+			}
+			contraEntry.add(obj);
+		}
+		return contraEntry;
+	}
+
+	private PaymentVoucher fetchContraPv(String contraId) {
+		return paymentVoucherRepo.findByContraId(contraId);
+	}
+
+	private AdjustmentReceiptVoucher fetchContraArv(String contraId) {
+		return adjustmentReceiptVoucherRepo.findByContraId(contraId);
+	}
+
+	private CashReceiptVoucher fetchContraCv(String contraId) {
+		return cashReceiptRepo.findByContraId(contraId);
 	}
 
 	@Autowired

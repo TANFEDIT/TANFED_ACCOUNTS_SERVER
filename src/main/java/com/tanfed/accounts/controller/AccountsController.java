@@ -36,7 +36,7 @@ public class AccountsController {
 
 	@Autowired
 	private CashReceiptVoucherService cashReceiptVoucher;
-	
+
 	@Autowired
 	private ContraVoucherService contraVoucherService;
 
@@ -280,6 +280,12 @@ public class AccountsController {
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
+	}
+
+	@GetMapping("/fetchcontrapvforupdate")
+	public List<PaymentVoucher> fetchContraPvForUpdateHandler(@RequestParam String formType,
+			@RequestParam String officeName) throws Exception {
+		return paymentVoucher.fetchContraPvForUpdateHandler(formType, officeName);
 	}
 
 	@GetMapping("/fetchdataforpv")

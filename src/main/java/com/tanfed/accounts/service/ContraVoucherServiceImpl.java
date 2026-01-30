@@ -178,6 +178,15 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 		}
 	}
 
+	@Override
+	public List<ContraEntry> getContraByOfficeName(String officeName) throws Exception {
+		try {
+			return contraEntryRepo.findByOfficeName(officeName);
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
 	@Autowired
 	private AdjustmentReceiptVoucherRepo adjustmentReceiptVoucherRepo;
 
@@ -191,17 +200,21 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 			if (contraEntry.getContraBetween().startsWith("Cash")) {
 				AdjustmentReceiptVoucher adjustmentReceiptVoucher = adjustmentReceiptVoucherService
 						.getAdjustmentReceiptVoucherByContraId(pv.getContraId());
-				adjustmentReceiptVoucher.setVoucherStatus("Approved");
+				adjustmentReceiptVoucher.setVoucherStatus(pv.getVoucherStatus());
 				adjustmentReceiptVoucher.setApprovedDate(LocalDate.now());
 				adjustmentReceiptVoucherRepo.save(adjustmentReceiptVoucher);
-				adjustmentReceiptVoucherService.updateClosingBalance(adjustmentReceiptVoucher);
+				if (pv.getVoucherStatus().equals("Approved")) {
+					adjustmentReceiptVoucherService.updateClosingBalance(adjustmentReceiptVoucher);
+				}
 			} else if (contraEntry.getContraBetween().equals("Bank to Cash")) {
 				CashReceiptVoucher cashReceiptVoucher = cashReceiptVoucherService
 						.getCashReceiptVoucherByContraId(pv.getContraId());
-				cashReceiptVoucher.setVoucherStatus("Approved");
+				cashReceiptVoucher.setVoucherStatus(pv.getVoucherStatus());
 				cashReceiptVoucher.setApprovedDate(LocalDate.now());
 				cashReceiptRepo.save(cashReceiptVoucher);
-				cashReceiptVoucherService.updateClosingBalance(cashReceiptVoucher);
+				if (pv.getVoucherStatus().equals("Approved")) {
+					cashReceiptVoucherService.updateClosingBalance(cashReceiptVoucher);
+				}
 			}
 		} catch (Exception e) {
 			throw new Exception(e);

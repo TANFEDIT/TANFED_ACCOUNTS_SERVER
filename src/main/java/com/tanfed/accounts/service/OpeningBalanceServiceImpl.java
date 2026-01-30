@@ -164,9 +164,6 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 	@Autowired
 	private SundryCrObRepo sundryCrObRepo;
 
-	@Autowired
-	private SundryDrCrTableRepo sundryDrCrTableRepo;
-
 	@Override
 	public ResponseEntity<String> saveSundryCrOb(List<SundryCrOb> obj, String jwt) throws Exception {
 		try {
@@ -175,16 +172,6 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 				item.setVoucherStatus("Pending");
 				item.setEmpId(Arrays.asList(empId));
 				sundryCrObRepo.save(item);
-				SundryDrCrTable sundryCreditorsTable = sundryDrCrTableRepo
-						.findByMonthAndSubHeadAndOfficeNameAndFormType("APRIL 2025", item.getSubHead(),
-								item.getOfficeName(), "Cr");
-				if (sundryCreditorsTable != null) {
-					sundryCreditorsTable.setCb(sundryCreditorsTable.getCb() + item.getAmount());
-				}
-				sundryDrCrTableRepo.save(sundryCreditorsTable == null
-						? new SundryDrCrTable(null, "Cr", "APRIL 2025", item.getSubHead(), item.getOfficeName(), 0.0,
-								0.0, 0.0, 0.0, item.getAmount())
-						: sundryCreditorsTable);
 			});
 			return new ResponseEntity<String>("Created Successfully!", HttpStatus.CREATED);
 		} catch (Exception e) {
@@ -204,15 +191,6 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 				item.setEmpId(Arrays.asList(empId));
 				item.setCollectionMode("Through CC");
 				sundryDrObRepo.save(item);
-				SundryDrCrTable sundryDebtorsTable = sundryDrCrTableRepo.findByMonthAndSubHeadAndOfficeNameAndFormType(
-						"APRIL 2025", item.getSubHead(), item.getOfficeName(), "Dr");
-				if (sundryDebtorsTable != null) {
-					sundryDebtorsTable.setCb(sundryDebtorsTable.getCb() + item.getAmount());
-				}
-				sundryDrCrTableRepo.save(sundryDebtorsTable == null
-						? new SundryDrCrTable(null, "Dr", "APRIL 2025", item.getSubHead(), item.getOfficeName(), 0.0,
-								0.0, 0.0, 0.0, item.getAmount())
-						: sundryDebtorsTable);
 			});
 			return new ResponseEntity<String>("Created Successfully!", HttpStatus.CREATED);
 		} catch (Exception e) {

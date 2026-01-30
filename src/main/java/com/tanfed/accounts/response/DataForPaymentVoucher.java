@@ -18,4 +18,5 @@ public class DataForPaymentVoucher {
 	private String branchName;
 	private Long beneficiaryAccountNo;
 	private Double balance;
+	private Boolean prevVoucherNotApproved;
 }

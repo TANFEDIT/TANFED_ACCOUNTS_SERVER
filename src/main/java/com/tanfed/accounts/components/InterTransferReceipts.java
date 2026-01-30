@@ -48,9 +48,7 @@ public class InterTransferReceipts {
 		adj.setUtrChequeNoDdNo(Long.valueOf(no));
 		LocalDate date = pv.getPvType().equals("Online Payment Voucher") ? pv.getOnlineDate() : pv.getChequeDate();
 		adj.setDocDate(date);
-		BankInfo bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, pv.getOfficeName()).stream()
-				.filter(i -> i.getAccountNumber().equals(pv.getAccountNo())).collect(Collectors.toList()).get(0);
-		adj.setIssuingBank(bankInfo.getBankName());
+		adj.setIssuingBank("Bank");
 		adj.setAccountType(contraEntry.getReceiptAccType());
 		adj.setAccountNo(contraEntry.getReceiptAccountNo());
 		adj.setBranchName(contraEntry.getReceiptBranchName());

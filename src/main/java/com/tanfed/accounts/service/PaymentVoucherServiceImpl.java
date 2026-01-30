@@ -239,16 +239,13 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		try {
 			DataForPaymentVoucher data = new DataForPaymentVoucher();
 			if (officeName != null && !officeName.isEmpty()) {
+				data.setPrevVoucherNotApproved(false);
 				data.setBeneficiaryNameList(masterService.getBeneficiaryListByOfficeName(jwt, officeName).stream()
 						.filter(item -> item.getBeneficiaryApplicableToHoAccount().contains(mainHead))
 						.map(item -> item.getBeneficiaryName()).collect(Collectors.toSet()));
 
 				List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, officeName);
-				List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName).stream()
-						.filter(item -> item.getPvType().equals(pvType)).collect(Collectors.toList());
-				if (!pendingPvs.isEmpty()) {
-					throw new Exception("Approve previous Payment voucher!");
-				}
+
 				if (paidTo != null && !paidTo.isEmpty()) {
 					List<BeneficiaryMaster> collect = masterService.getBeneficiaryListByOfficeName(jwt, officeName)
 							.stream().filter(item -> item.getBeneficiaryName().equals(paidTo))
@@ -273,6 +270,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				}
 				if (pvType.equals("Cash Payment Voucher") || pvType.equals("Online Payment Voucher")
 						|| pvType.equals("Cheque Payment Voucher")) {
+					data.setPrevVoucherNotApproved(checkPrevPaymentForApproval(pvType, officeName, accountNo));
 					data.setBalance(getAvlBalance(pvType, date, officeName, accountNo));
 				}
 			}
@@ -280,6 +278,19 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
+	}
+
+	private Boolean checkPrevPaymentForApproval(String pvType, String officeName, String accountNo) {
+		List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName).stream()
+				.filter(item -> {
+					if (pvType.equals("Cash Payment Voucher")) {
+						return item.getPvType().equals(pvType);
+					} else {
+						return item.getPvType().equals(pvType)
+								&& (!accountNo.isEmpty() && item.getAccountNo().equals(Long.valueOf(accountNo)));
+					}
+				}).collect(Collectors.toList());
+		return pendingPvs.isEmpty() ? false : true;
 	}
 
 	private Double getAvlBalance(String pvType, LocalDate date, String officeName, String accountNo) {
@@ -401,6 +412,29 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			paymentVoucher.getEmpId().add(empId);
 			paymentVoucher.setVoucherStatus("Rejected");
 			paymentVoucherRepo.save(paymentVoucher);
+		} catch (Exception e) {
+			throw new Exception(e);
+		}
+	}
+
+	@Override
+	public List<PaymentVoucher> fetchContraPvForUpdateHandler(String formType, String officeName) throws Exception {
+		try {
+			if (formType.equals("pvOnlineUpdate")) {
+				return paymentVoucherRepo.findByOfficeName(officeName).stream().filter(item -> {
+					return item.getPvType().equals("Online Payment Voucher") && item.getUtrNumber() == null
+							&& item.getStatus() == null && item.getOnlineDate() == null
+							&& item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("Yes");
+				}).collect(Collectors.toList());
+			} else {
+				return paymentVoucherRepo.findByOfficeName(officeName).stream().filter(item -> {
+					return item.getPvType().equals("Cheque Payment Voucher") && item.getChequeNumber() == null
+							&& item.getChequeDate() == null && item.getIssueBankName() == null
+							&& item.getVoucherStatus().equals("Approved") && item.getSettledDate() == null
+							&& item.getStatus() == null && item.getContraEntry().equals("Yes");
+				}).collect(Collectors.toList());
+			}
+
 		} catch (Exception e) {
 			throw new Exception(e);
 		}

@@ -112,9 +112,8 @@ public class BillsAccountsHandler {
 	@GetMapping("/fetchdataforsundrybills")
 	public DataForSundryDebtor getDataForSundryBillsHandler(@RequestHeader("Authorization") String jwt,
 			@RequestParam(required = false) String ifmsId, @RequestParam(required = false) String idNo,
-			@RequestParam(required = false) String formType, @RequestParam String officeName,
-			@RequestParam(required = false) String month) throws Exception {
-		return sundryDebtorsAndCreditorsService.getDataForSundryBills(jwt, ifmsId, idNo, officeName, month, formType);
+			@RequestParam(required = false) String formType, @RequestParam String officeName) throws Exception {
+		return sundryDebtorsAndCreditorsService.getDataForSundryBills(jwt, ifmsId, idNo, officeName, formType);
 	}
 
 	@Autowired
@@ -368,11 +367,11 @@ public class BillsAccountsHandler {
 			data.setDistrictList(buyerData.stream().map(item -> item.getDistrict()).collect(Collectors.toSet()));
 			data.setIfmsIdList(buyerData.stream().filter(item -> item.getDistrict().equals(district))
 					.map(item -> item.getNameOfInstitution()).collect(Collectors.toList()));
-			List<SundryDebtorsRegister> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName, month,
-					subHead, ifmsId, firmType, jwt);
+			List<SundryDebtorsRegister> fetchSundryDebitorsData = registerService.fetchSundryDebtorsData(officeName,
+					month, subHead, ifmsId, firmType, jwt);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);
 			if (month != null && !month.isEmpty()) {
-				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, subHead, officeName, ifmsId));
+				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, officeName, ifmsId));
 			}
 			return data;
 		}
@@ -386,7 +385,7 @@ public class BillsAccountsHandler {
 			List<CashChittaTable> fetchSundryCreditorsData = registerService.fetchSundryCreditorsData(officeName, month,
 					subHead, supplierName);
 			data.setSundryCreditorsRegister(fetchSundryCreditorsData);
-			data.setOb(sundryDebtorsAndCreditorsService.calculateSCrObValue(month, subHead, officeName));
+			data.setOb(sundryDebtorsAndCreditorsService.calculateSCrObValue(month, officeName));
 			return data;
 		}
 		case "supplierAdvanceRegister": {
@@ -453,22 +452,23 @@ public class BillsAccountsHandler {
 		return sundryDebtorsAndCreditorsService.fetchDataForIC(officeName, activity, collectionProcess, jwt, fromDate,
 				toDate, ccbBranch, ackEntryDate, dueDate, addedToPresentDate, icmNo);
 	}
-	
+
 	@PutMapping("/updatesdricdata")
 	@PreAuthorize("hasAnyRole('ROLE_SUPERADMIN', 'ROLE_ESTADMIN', 'ROLE_ROUSER', 'ROLE_ROADMIN')")
 	public ResponseEntity<String> updateInvoiceCollectionHandler(@RequestBody List<InvoiceCollectionObject> obj,
 			@RequestHeader("Authorization") String jwt) throws Exception {
 		return sundryDebtorsAndCreditorsService.updateICData(obj, jwt);
 	}
-	
+
 	private static Logger logger = LoggerFactory.getLogger(SundryDebtorsAndCreditorsServiceImpl.class);
+
 	@PutMapping("/savesdrAdjReceiptforicm/{type}")
 	public ResponseEntity<String> saveAdjReceiptForIcmInvoicesHandler(@PathVariable String type,
 			@RequestBody IcmObject obj, @RequestHeader("Authorization") String jwt) throws Exception {
 		logger.info("{}", obj);
 		return sundryDebtorsAndCreditorsService.saveAdjReceiptForIcmInvoices(obj, jwt, type);
 	}
-	
+
 	@PutMapping("/updatesdricapproval")
 	@PreAuthorize("hasAnyRole('ROLE_SUPERADMIN', 'ROLE_ESTADMIN', 'ROLE_ROADMIN')")
 	public ResponseEntity<String> inventryVoucherApprovalHandler(@RequestBody VoucherApproval obj,
@@ -476,5 +476,5 @@ public class BillsAccountsHandler {
 		String updatedStatus = sundryDebtorsAndCreditorsService.updateAplStatusInvoiceCollection(obj, jwt);
 		return new ResponseEntity<String>(updatedStatus, HttpStatus.ACCEPTED);
 	}
-	
+
 }

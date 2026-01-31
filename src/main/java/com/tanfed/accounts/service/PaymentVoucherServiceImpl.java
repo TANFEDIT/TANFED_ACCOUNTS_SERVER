@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +44,7 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
 			obj.setVoucherNo(code);
+			obj.setContraEntry(obj.getVoucherFor().equals("Contra") ? "Yes" : "No");
 			paymentVoucherRepo.save(obj);
 
 			return new ResponseEntity<String>("Created Successfully" + "\n Voucher Number : " + code,
@@ -232,12 +235,14 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 
 	@Autowired
 	private MasterService masterService;
+	private static Logger logger = LoggerFactory.getLogger(PaymentVoucherServiceImpl.class);
 
 	@Override
 	public DataForPaymentVoucher getDataForPaymentVoucher(String officeName, String accountType, String accountNo,
 			String jwt, String mainHead, String paidTo, LocalDate date, String pvType) throws Exception {
 		try {
 			DataForPaymentVoucher data = new DataForPaymentVoucher();
+			logger.info("officeName {}", officeName);
 			if (officeName != null && !officeName.isEmpty()) {
 				data.setPrevVoucherNotApproved(false);
 				data.setBeneficiaryNameList(masterService.getBeneficiaryListByOfficeName(jwt, officeName).stream()

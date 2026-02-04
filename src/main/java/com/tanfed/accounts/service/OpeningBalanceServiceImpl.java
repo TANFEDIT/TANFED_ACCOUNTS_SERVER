@@ -27,9 +27,6 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 	@Autowired
 	private BillsGstObRepo billsGstObRepo;
 
-	@Autowired
-	private InventryService inventryService;
-
 	@Override
 	public ResponseEntity<String> saveOpeningBalance(OpeningBalanceDto obj, String jwt) throws Exception {
 		try {
@@ -78,23 +75,7 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 					tempObj.setPassbookAmount(temp.getPassbookAmount());
 					tempObj.setDayBookAmount(temp.getDayBookAmount());
 
-//					Saving data in database
 					openingBalanceRepo.save(tempObj);
-
-					FundTransfer ftObj = new FundTransfer();
-					ftObj.setOfficeName(obj.getOfficeName());
-					ftObj.setBranchName(temp.getBranchName());
-					ftObj.setAccountNo(temp.getAccountNumber());
-					ftObj.setOpeningBalance(temp.getPassbookAmount());
-					ftObj.setClosingBalance(temp.getPassbookAmount());
-					ftObj.setDateOfTransfer(obj.getOpDate());
-					ftObj.setCollection(0.0);
-					ftObj.setTotal(0.0);
-					ftObj.setCurrentTransfer(0.0);
-					ftObj.setBankCharges(0.0);
-					ftObj.setOthers(0.0);
-					ftObj.setDate(temp.getBankBalanceDate());
-					inventryService.saveFundTransferHandler(ftObj, jwt);
 				}
 			}
 

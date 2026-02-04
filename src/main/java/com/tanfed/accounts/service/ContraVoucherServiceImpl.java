@@ -115,6 +115,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 			pv.setVoucherStatus("Pending");
 			pv.setVoucherFor("Contra");
 			pv.setContraId(contraId);
+			pv.setActivity(obj.getContraBetween().startsWith("RO") ? obj.getActivity() : null);
 			pv.setOfficeName(obj.getOfficeName());
 			if (!pv.getPvType().equals("Cash Payment Voucher")) {
 				pv.setAccountType(obj.getPaymentAccType());
@@ -153,8 +154,8 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 				cashReceiptVoucherService.saveCashReceiptVoucher(cr, jwt);
 			}
 			contraEntryRepo.save(new ContraEntry(null, null, contraId, obj.getDate(), obj.getContraBetween(),
-					obj.getOfficeName(), obj.getAmount(), obj.getMainHead(), obj.getPvType(), obj.getPaidTo(),
-					obj.getPaymentAccType(), obj.getPaymentAccountNo(), obj.getPaymentBranchName(),
+					obj.getOfficeName(), obj.getAmount(), obj.getMainHead(), obj.getActivity(), obj.getPvType(),
+					obj.getPaidTo(), obj.getPaymentAccType(), obj.getPaymentAccountNo(), obj.getPaymentBranchName(),
 					obj.getPaymentRemarks(), obj.getPaymentSubHead(), obj.getReceivedFrom(), obj.getReceiptAccType(),
 					obj.getReceiptAccountNo(), obj.getReceiptBranchName(), obj.getReceiptRemarks(),
 					obj.getReceiptSubHead(), obj.getReceiptMode(), obj.getUtrChequeNoDdNo(), obj.getDocDate(),

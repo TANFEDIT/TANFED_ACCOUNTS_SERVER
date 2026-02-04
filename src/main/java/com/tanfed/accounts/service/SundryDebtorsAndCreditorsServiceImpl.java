@@ -473,6 +473,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					}
 					sundryDrOb.setTransferDone(false);
 					sundryDrOb.setIsShort(temp.getIsShort());
+
 					SundryDrOb save = sundryDrObRepo.save(sundryDrOb);
 					logger.info("{}", save);
 

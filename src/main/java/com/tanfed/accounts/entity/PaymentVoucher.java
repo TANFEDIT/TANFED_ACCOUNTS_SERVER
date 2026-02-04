@@ -33,7 +33,7 @@ public class PaymentVoucher {
 	
 	//create
 	private String pvType;
-	
+	private String activity;
 	private LocalDate date;
 	
 	private Long accountNo;

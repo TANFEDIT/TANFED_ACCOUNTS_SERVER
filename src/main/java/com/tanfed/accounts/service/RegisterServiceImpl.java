@@ -359,79 +359,12 @@ public class RegisterServiceImpl implements RegisterService {
 								"Collection invoice " + i.getInvoiceNo(), 0.0, amounts.get(idx)));
 					}).collect(Collectors.toList()));
 			return data;
-//			List<CashChittaTable> list = new ArrayList<CashChittaTable>();
-//			list.addAll(journalVoucherService.getJvByOfficeName(officeName).stream()
-//					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getJvMonth().equals(month)
-//							&& item.getJvFor().equals("Sales Jv") && item.getJvType().equals("net")
-//							&& (item.getIfmsId().contains(ifmsId) || ifmsId.isEmpty())
-//							&& validateFirmTypeByIfmsId(item.getIfmsId().get(0), firmType, jwt))
-//					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getJvDate(),
-//							joinJvHead(item.getRows().stream()
-//									.filter(data -> data.getDrOrCr().equals("Dr")
-//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-//											&& data.getSubHead().equals(subHead))
-//									.map(data -> data.getMainHead()).collect(Collectors.toList())),
-//							joinJvHead(item.getRows().stream()
-//									.filter(data -> data.getDrOrCr().equals("Dr")
-//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-//											&& data.getSubHead().equals(subHead))
-//									.map(data -> data.getSubHead()).collect(Collectors.toList())),
-//							item.getNarration(), null,
-//							item.getRows().stream()
-//									.filter(data -> data.getDrOrCr().equals("Dr")
-//											&& data.getMainHead().equals("H.O a/c - Sundry Debtors")
-//											&& data.getSubHead().equals(subHead))
-//									.mapToDouble(sum -> sum.getAmount()).sum(),
-//							"JV"))
-//					.collect(Collectors.toList()));
-//
-//			list.addAll(adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
-//					.filter(item -> item.getVoucherStatus().equals("Approved")
-//							&& (item.getVoucherFor().equals("Non-CC Invoice") || item.getVoucherFor().equals("ICM"))
-//							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
-//									.equals(month)
-//							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
-//							&& item.getSubHead().equals(subHead)
-//							&& ifmsId.isEmpty()
-//							&& (validateFirmTypeByIfmsId(null, firmType, jwt) || firmType.isEmpty()))
-//					.map(item -> new CashChittaTable(item.getVoucherNo(), item.getDate(), item.getMainHead(),
-//							item.getSubHead(), item.getNarration(), item.getReceivedAmount(), null, "ICM ADJ"))
-//					.collect(Collectors.toList()));
-//
-//			list.addAll(sundryDebtorsAndCreditorsService.fetchReconciliationEntriesByOfficeName(officeName).stream()
-//					.filter(item -> item.getFormType().equals("Dr") && item.getVoucherStatus().equals("Approved")
-//							&& String.format("%s%s%04d", item.getDate().getMonth(), " ", item.getDate().getYear())
-//									.equals(month)
-//							&& (item.getIfmsId().equals(ifmsId) || ifmsId.isEmpty())
-//							&& item.getMainHead().equals("H.O a/c - Sundry Debtors")
-//							&& item.getSubHead().equals(subHead)
-//							&& validateFirmTypeByIfmsId(item.getIfmsId(), firmType, jwt))
-//					.map(item -> {
-//						double credit = 0.0, debit = 0.0;
-//						if (item.getIdNo().startsWith("DN")) {
-//							debit = item.getAmount();
-//						} else {
-//							credit = item.getAmount();
-//						}
-//						return new CashChittaTable(item.getIdNo(), item.getDate(), item.getMainHead(),
-//								item.getSubHead(), item.getRemarks(), credit, debit, "RECONCILIATION");
-//					}).collect(Collectors.toList()));
-//			return list;
 
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
 	}
 
-//	private Boolean validateFirmTypeByIfmsId(String ifmsId, String firmType, String jwt) {
-//		try {
-//			BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt, ifmsId);
-//			return buyerFirmInfo.getFirmType().equals(firmType) ? true : false;
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//			return false;
-//		}
-//	}
 
 	private String joinJvHead(List<String> head) {
 		return String.join(", ", head);

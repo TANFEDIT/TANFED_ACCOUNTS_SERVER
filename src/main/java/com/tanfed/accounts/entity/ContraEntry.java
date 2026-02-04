@@ -31,6 +31,7 @@ public class ContraEntry {
 
 	private Double amount;
 	private String mainHead;
+	private String activity;
 	
 	private String pvType;
 	private String paidTo;

@@ -25,7 +25,7 @@ public class ContraEntryDto {
 	private String paymentBranchName;
 	private String paymentRemarks;
 	private String paymentSubHead;
-	
+	private String activity;
 	private String receivedFrom;
 	private String receiptAccType;
 	private Long receiptAccountNo;

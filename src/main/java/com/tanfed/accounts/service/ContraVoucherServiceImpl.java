@@ -2,6 +2,7 @@ package com.tanfed.accounts.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.dto.ContraEntryDto;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.CashReceiptVoucher;
@@ -36,7 +38,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 	private CashReceiptVoucherService cashReceiptVoucherService;
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterDataManager;
 
 	@Autowired
 	private UserService userService;
@@ -44,49 +46,66 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 	@Override
 	public DataForContraEntry getDataForContraEntry(String officeName, String jwt, String paymentAccType, String pvType,
 			String contraBetween, String receiptAccType, LocalDate date, String paymentAccountNo,
-			String receiptAccountNo, String paidTo) throws Exception {
+			String paymentBranchName, String receiptAccountNo, String paidTo) throws Exception {
 		try {
 			DataForContraEntry data = new DataForContraEntry();
 			if (officeName != null && !officeName.isEmpty()) {
 				if (contraBetween.startsWith("Cash")) {
-					data.setBalance(paymentVoucherService
-							.getDataForPaymentVoucher(officeName, null, null, jwt, null, null, date, pvType)
-							.getBalance());
+					data.setBalance(RoundToDecimalPlace.roundToTwoDecimalPlaces(paymentVoucherService
+							.getDataForPaymentVoucher(officeName, null, null, null, jwt, null, null, date, pvType, null)
+							.getBalance()));
 				} else if (contraBetween.startsWith("Bank") || contraBetween.startsWith("HO")
-						|| contraBetween.startsWith("RO")) {
-					List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, officeName);
-					data.setPaymentAccountTypeList(
-							bankInfo.stream().map(BankInfo::getAccountType).collect(Collectors.toSet()));
+						|| contraBetween.startsWith("RO") || contraBetween.equals("Invoice Collection Transfer")) {
+					try {
+						List<BankInfo> bankInfo = masterDataManager.fetchBankInfoData(jwt);
+						data.setPaymentAccountTypeList(bankInfo.stream().filter(
+								i -> i.getOfficeName().equals(officeName) && contraBetween.equals("Bank to Bank") ? true
+										: !i.getAccountType().equals("Non PDS A/c Fert"))
+								.map(BankInfo::getAccountType).collect(Collectors.toSet()));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 					if (paymentAccType != null && !paymentAccType.isEmpty()) {
 						DataForPaymentVoucher dataForPaymentVoucher = paymentVoucherService.getDataForPaymentVoucher(
-								officeName, paymentAccType, paymentAccountNo, jwt, null, null, date, pvType);
+								officeName, paymentAccType, paymentAccountNo, paymentBranchName, jwt, null, null, date,
+								pvType, null);
 						data.setPaymentAccNoList(dataForPaymentVoucher.getAccountNumList());
 						if (paymentAccountNo != null && !paymentAccountNo.isEmpty()) {
-							data.setPaymentBranchName(dataForPaymentVoucher.getBranchName());
-							data.setBalance(
-									RoundToDecimalPlace.roundToTwoDecimalPlaces(dataForPaymentVoucher.getBalance()));
+							data.setPaymentBranchNameList(dataForPaymentVoucher.getBranchNameList());
+							if (paymentBranchName != null && !paymentBranchName.isEmpty()) {
+								data.setBalance(RoundToDecimalPlace
+										.roundToTwoDecimalPlaces(dataForPaymentVoucher.getBalance()));
+							}
 						}
 					}
 				}
 				if (contraBetween.startsWith("HO")) {
-					data.setOfficeNameList(userService.getOfficeList().stream()
-							.filter(i -> i.getOfficeType().equals("Regional Office")).map(i -> i.getOfficeName())
-							.collect(Collectors.toList()));
+					data.setOfficeNameList(
+							userService.getOfficeList().stream().filter(i -> !i.getOfficeType().equals("Head Office"))
+									.map(i -> i.getOfficeName()).collect(Collectors.toList()));
 				}
-				if (contraBetween.endsWith("Bank")) {
+				if (contraBetween.endsWith("Bank") || contraBetween.equals("Invoice Collection Transfer")) {
 					String office = paidTo.equals("Self") ? officeName : paidTo;
-					List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, office);
-					data.setReceiptAccountTypeList(bankInfo.stream()
-							.filter(i -> paidTo.equals("Self") ? !i.getAccountType().equals(paymentAccType) : true)
+					List<BankInfo> bankInfo = masterDataManager.fetchBankInfoData(jwt).stream()
+							.filter(i -> i.getOfficeName().equals(office)).collect(Collectors.toList());
+					data.setReceiptAccountTypeList(bankInfo.stream().filter(
+							i -> (contraBetween.equals("Cash to Bank") || contraBetween.equals("HO Bank to RO Bank"))
+									? !i.getAccountType().equals("Non PDS A/c Fert")
+									: true)
 							.map(BankInfo::getAccountType).collect(Collectors.toSet()));
 					if (receiptAccType != null && !receiptAccType.isEmpty()) {
-						DataForPaymentVoucher dataForPaymentVoucher = paymentVoucherService.getDataForPaymentVoucher(
-								office, receiptAccType, receiptAccountNo, jwt, null, null, date, pvType);
-						data.setReceiptAccNoList(dataForPaymentVoucher.getAccountNumList());
+						data.setReceiptAccNoList(
+								bankInfo.stream().filter(i -> i.getAccountType().equals(receiptAccType))
+										.map(i -> i.getAccountNumber()).collect(Collectors.toList()));
 						if (receiptAccountNo != null && !receiptAccountNo.isEmpty()) {
-							data.setReceiptBranchName(dataForPaymentVoucher.getBranchName());
+							data.setReceiptBranchNameList(bankInfo.stream()
+									.filter(i -> i.getAccountNumber().equals(Long.valueOf(receiptAccountNo)))
+									.map(i -> i.getBranchName()).collect(Collectors.toSet()));
 						}
 					}
+				}
+				if (contraBetween.equals("Invoice Collection Transfer")) {
+					data.setPaymentAccountTypeList(Set.of("Non PDS A/c Fert"));
 				}
 
 			}
@@ -115,7 +134,7 @@ public class ContraVoucherServiceImpl implements ContraVoucherService {
 			pv.setVoucherStatus("Pending");
 			pv.setVoucherFor("Contra");
 			pv.setContraId(contraId);
-			pv.setActivity(obj.getContraBetween().startsWith("RO") ? obj.getActivity() : null);
+			pv.setActivity(obj.getContraBetween().equals("Invoice Collection Transfer") ? obj.getActivity() : null);
 			pv.setOfficeName(obj.getOfficeName());
 			if (!pv.getPvType().equals("Cash Payment Voucher")) {
 				pv.setAccountType(obj.getPaymentAccType());

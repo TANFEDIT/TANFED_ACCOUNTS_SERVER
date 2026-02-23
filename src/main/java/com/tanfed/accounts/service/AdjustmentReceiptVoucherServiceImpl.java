@@ -140,6 +140,7 @@ public class AdjustmentReceiptVoucherServiceImpl implements AdjustmentReceiptVou
 			List<ClosingBalanceTable> cb = closingBalanceRepo
 					.findByOfficeNameAndDate(obj.getOfficeName(), obj.getDate()).stream()
 					.filter(item -> item.getCashBalance() == null && item.getAccType().equals(obj.getAccountType())
+							&& item.getBranchName().equals(obj.getBranchName())
 							&& item.getAccNo().equals(obj.getAccountNo()))
 					.collect(Collectors.toList());
 			if (cb.isEmpty()) {
@@ -149,24 +150,27 @@ public class AdjustmentReceiptVoucherServiceImpl implements AdjustmentReceiptVou
 					cb = closingBalanceRepo.findByOfficeNameAndDate(obj.getOfficeName(), prevDate).stream()
 							.filter(item -> item.getCashBalance() == null
 									&& item.getAccType().equals(obj.getAccountType())
+									&& item.getBranchName().equals(obj.getBranchName())
 									&& item.getAccNo().equals(obj.getAccountNo()))
 							.collect(Collectors.toList());
 					if (n == 365) {
 						closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(), null,
-								obj.getReceivedAmount(), obj.getAccountType(), obj.getAccountNo()));
+								obj.getReceivedAmount(), obj.getAccountType(), obj.getBranchName(),
+								obj.getAccountNo()));
 						break;
 					}
 				}
 				closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(), null,
-						cb.get(0).getBankBalance() + obj.getReceivedAmount(), obj.getAccountType(),
+						cb.get(0).getBankBalance() + obj.getReceivedAmount(), obj.getAccountType(), obj.getBranchName(),
 						obj.getAccountNo()));
 			} else {
 				cb.get(0).setBankBalance(cb.get(0).getBankBalance() + obj.getReceivedAmount());
 				closingBalanceRepo.save(cb.get(0));
 			}
-			List<ClosingBalanceTable> cbData = closingBalanceRepo
-					.findByOfficeName(obj.getOfficeName()).stream().filter(item -> item.getCashBalance() == null
-							&& item.getAccNo().equals(obj.getAccountNo()) && item.getDate().isAfter(obj.getDate()))
+			List<ClosingBalanceTable> cbData = closingBalanceRepo.findByOfficeName(obj.getOfficeName()).stream()
+					.filter(item -> item.getCashBalance() == null && item.getAccNo().equals(obj.getAccountNo())
+							&& item.getBranchName().equals(obj.getBranchName())
+							&& item.getDate().isAfter(obj.getDate()))
 					.collect(Collectors.toList());
 			cbData.forEach(item -> {
 				item.setBankBalance(item.getBankBalance() + obj.getReceivedAmount());

@@ -15,8 +15,9 @@ public class DataForPaymentVoucher {
 	private List<Long> accountNumList;
 	private Set<String> beneficiaryNameList;
 	private Set<String> accountTypeList;
-	private String branchName;
+	private Set<String> branchNameList;
 	private Long beneficiaryAccountNo;
 	private Double balance;
 	private Boolean prevVoucherNotApproved;
+	private String page;
 }

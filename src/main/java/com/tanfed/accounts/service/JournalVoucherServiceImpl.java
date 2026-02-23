@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.JournalVoucher;
 import com.tanfed.accounts.entity.SalesJvTable;
@@ -93,7 +94,12 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 		try {
 			JournalVoucher journalVoucher = journalVoucherRepo.findById(obj.getId()).get();
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
+			logger.info("jv {}", obj);
 			obj.getEmpId().add(empId);
+			journalVoucher.getRows().clear();
+			obj.getRows().forEach(i -> {
+				i.setJv(journalVoucher);
+			});
 			journalVoucher.setRows(obj.getRows());
 
 			journalVoucherRepo.save(journalVoucher);
@@ -148,7 +154,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 	}
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 
 	@Autowired
 	private InventryService inventryService;
@@ -159,7 +165,7 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 		try {
 			DataForSalesJv data = new DataForSalesJv();
 			if (officeName != null && !officeName.isEmpty()) {
-				List<ProductMaster> productData = masterService.getProductDataHandler(jwt);
+				List<ProductMaster> productData = masterService.fetchProductMasterData(jwt);
 				if (activity != null && !activity.isEmpty()) {
 					data.setProductCategoryList(productData.stream().filter(item -> item.getActivity().equals(activity))
 							.map(item -> item.getProductCategory()).collect(Collectors.toSet()));
@@ -257,7 +263,10 @@ public class JournalVoucherServiceImpl implements JournalVoucherService {
 			JournalVoucher journalVoucher = journalVoucherRepo.findById(obj.getId()).get();
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.getEmpId().add(empId);
-			journalVoucher.setVoucherStatus("Rejected");
+			journalVoucher.setVoucherStatus(obj.getVoucherStatus());
+			if (obj.getVoucherStatus().equals("Approved")) {
+				journalVoucher.setApprovedDate(LocalDate.now());
+			}
 			journalVoucherRepo.save(journalVoucher);
 		} catch (Exception e) {
 			throw new Exception(e);

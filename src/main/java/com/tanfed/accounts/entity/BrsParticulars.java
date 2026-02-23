@@ -1,11 +1,13 @@
 package com.tanfed.accounts.entity;
 
-import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,18 +18,22 @@ import lombok.NoArgsConstructor;
 @Table
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClosingBalanceTable {
-
+public class BrsParticulars {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	
-	private String officeName;
-	private LocalDate date;
-	private Double cashBalance;
-	private Double bankBalance;
-	private String accType;
-	private String branchName;
-	private Long accNo;
+	private String action;
+
+	private String particulars;
+
+	private Double amount;
+	
+	@ManyToOne
+	@JoinColumn(name = "brs")
+	@JsonIgnore
+	private BRS brs;
+	
+	
 }

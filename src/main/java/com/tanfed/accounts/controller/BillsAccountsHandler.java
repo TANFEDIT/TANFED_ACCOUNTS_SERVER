@@ -23,12 +23,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.*;
 import com.tanfed.accounts.repository.ClosingBalanceRepo;
 import com.tanfed.accounts.repository.OpeningBalanceRepo;
 import com.tanfed.accounts.response.*;
 import com.tanfed.accounts.service.*;
+import com.tanfed.accounts.utils.RoundToDecimalPlace;
 import com.tanfed.accounts.model.VoucherApproval;
 
 @RestController
@@ -345,7 +347,7 @@ public class BillsAccountsHandler {
 	}
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterDataManager;
 
 	@GetMapping("/fetchbillsregisters/{formType}")
 	public Registers getBillsRegistersHandler(@PathVariable String formType,
@@ -359,7 +361,8 @@ public class BillsAccountsHandler {
 		Registers data = new Registers();
 		switch (formType) {
 		case "sundryDebitorsRegister": {
-			List<BuyerFirmInfo> buyerData = masterService.getBuyerDataByOfficeNameHandler(officeName, jwt);
+			List<BuyerFirmInfo> buyerData = masterDataManager.fetchBuyerFirmInfoData(jwt).stream()
+					.filter(item -> item.getOfficeName().equals(officeName)).collect(Collectors.toList());
 			data.setDistrictList(buyerData.stream().map(item -> item.getDistrict()).collect(Collectors.toSet()));
 			data.setIfmsIdList(buyerData.stream().filter(item -> item.getDistrict().equals(district))
 					.map(item -> item.getNameOfInstitution()).collect(Collectors.toList()));
@@ -367,25 +370,27 @@ public class BillsAccountsHandler {
 					month, subHead, ifmsId, firmType, jwt);
 			data.setSundryDebitorsRegister(fetchSundryDebitorsData);
 			if (month != null && !month.isEmpty()) {
-				data.setOb(sundryDebtorsAndCreditorsService.calculateSDrObValue(month, officeName, ifmsId));
+				data.setOb(RoundToDecimalPlace.roundToTwoDecimalPlaces(
+						sundryDebtorsAndCreditorsService.calculateSDrObValue(month, officeName, ifmsId)));
 			}
 			return data;
 		}
 		case "sundryCreditorsRegister": {
-			List<String> subHeadList = masterService.accountsMasterListHandler(jwt).stream()
+			List<String> subHeadList = masterDataManager.fetchAccMasterData(jwt).stream()
 					.filter(item -> item.getMainHead().equals("H.O a/c - Sundry Creditors"))
 					.map(item -> item.getSubHead()).collect(Collectors.toList());
 			data.setSubHeadList(subHeadList);
-			data.setNameList(masterService.getProductDataHandler(jwt).stream().map(item -> item.getSupplierName())
+			data.setNameList(masterDataManager.fetchSupplierInfoData(jwt).stream().map(item -> item.getSupplierName())
 					.collect(Collectors.toList()));
 			List<CashChittaTable> fetchSundryCreditorsData = registerService.fetchSundryCreditorsData(officeName, month,
 					subHead, supplierName);
 			data.setSundryCreditorsRegister(fetchSundryCreditorsData);
-			data.setOb(sundryDebtorsAndCreditorsService.calculateSCrObValue(month, officeName));
+			data.setOb(RoundToDecimalPlace
+					.roundToTwoDecimalPlaces(sundryDebtorsAndCreditorsService.calculateSCrObValue(month, officeName)));
 			return data;
 		}
 		case "supplierAdvanceRegister": {
-			data.setNameList(masterService.getProductDataHandler(jwt).stream().map(item -> item.getSupplierName())
+			data.setNameList(masterDataManager.fetchSupplierInfoData(jwt).stream().map(item -> item.getSupplierName())
 					.collect(Collectors.toList()));
 			List<CashChittaTable> fetchSupplierAdvanceData = registerService.fetchSupplierAdvanceData(month,
 					supplierName);

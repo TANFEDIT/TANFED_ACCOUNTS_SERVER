@@ -110,11 +110,11 @@ public class SupplierAdvance {
 	
 	@OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "pv_id", nullable = true)
-	private PaymentVoucher pv;
+	private PaymentVoucher pvData;
 	
 	@OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "jv_id", nullable = true)
-	private JournalVoucher jv;
+	private JournalVoucher jvData;
 	
 	
 	

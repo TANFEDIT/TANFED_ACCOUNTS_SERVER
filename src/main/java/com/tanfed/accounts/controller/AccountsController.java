@@ -292,10 +292,11 @@ public class AccountsController {
 	public DataForPaymentVoucher getDataForPaymentVoucherHandler(@RequestParam String officeName,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
 			@RequestParam String accountType, @RequestParam(required = false) String accountNo,
+			@RequestParam(required = false) String voucherNo, @RequestParam(required = false) String branchName,
 			@RequestParam String pvType, @RequestParam String mainHead, @RequestParam String paidTo,
 			@RequestHeader("Authorization") String jwt) throws Exception {
-		return paymentVoucher.getDataForPaymentVoucher(officeName, accountType, accountNo, jwt, mainHead, paidTo, date,
-				pvType);
+		return paymentVoucher.getDataForPaymentVoucher(officeName, accountType, accountNo, branchName, jwt, mainHead,
+				paidTo, date, pvType, voucherNo);
 	}
 
 	@GetMapping("/fetchfilterjvdata")
@@ -316,11 +317,11 @@ public class AccountsController {
 	public DataForContraEntry getDataForContraEntryHandler(@RequestParam String officeName,
 			@RequestParam String receiptAccountNo, @RequestParam String contraBetween,
 			@RequestParam String paymentAccType, @RequestParam String paidTo, @RequestParam String receiptAccType,
-			@RequestParam String pvType, @RequestParam String paymentAccountNo,
-			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+			@RequestParam String pvType, @RequestParam String paymentAccountNo, @RequestParam String paymentBranchName,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
 			@RequestHeader("Authorization") String jwt) throws Exception {
 		return contraVoucher.getDataForContraEntry(officeName, jwt, paymentAccType, pvType, contraBetween,
-				receiptAccType, date, paymentAccountNo, receiptAccountNo, paidTo);
+				receiptAccType, date, paymentAccountNo, paymentBranchName, receiptAccountNo, paidTo);
 	}
 
 	@GetMapping("/accob/validate/{officeName}")

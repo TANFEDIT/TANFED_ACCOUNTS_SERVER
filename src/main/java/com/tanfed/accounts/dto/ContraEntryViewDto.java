@@ -26,6 +26,5 @@ public class ContraEntryViewDto {
 	private String receiptMainHead;
 	private String receiptSubHead;
 	private Double receiptAmount;
-	
 	private String voucherStatus;
 }

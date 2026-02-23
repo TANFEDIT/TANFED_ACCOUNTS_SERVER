@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.CashReceiptVoucher;
 import com.tanfed.accounts.entity.JournalVoucher;
@@ -235,7 +236,7 @@ public class RegisterServiceImpl implements RegisterService {
 	}
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 
 	@Autowired
 	private InventryService inventryService;
@@ -244,8 +245,8 @@ public class RegisterServiceImpl implements RegisterService {
 	public List<CashChittaTable> fetchGeneralLedgerData(String officeName, String month, String jwt) throws Exception {
 		try {
 			List<CashChittaTable> table = new ArrayList<CashChittaTable>();
-			Set<String> mainHeadList = masterService.accountsMasterListHandler(jwt).stream()
-					.map(item -> item.getMainHead()).collect(Collectors.toSet());
+			Set<String> mainHeadList = masterService.fetchAccMasterData(jwt).stream().map(item -> item.getMainHead())
+					.collect(Collectors.toSet());
 
 			List<CashReceiptVoucher> crvList = cashReceiptVoucherService.getVouchersByOfficeName(officeName).stream()
 					.filter(item -> item.getVoucherStatus().equals("Approved") && item.getContraEntry().equals("No")
@@ -300,10 +301,9 @@ public class RegisterServiceImpl implements RegisterService {
 		}
 	}
 
-
 	@Autowired
 	private SundryDrObRepo sundryDrObRepo;
-	
+
 	@Override
 	public List<SundryDebtorsRegister> fetchSundryDebtorsData(String officeName, String month, String subHead,
 			String ifmsId, String firmType, String jwt) throws Exception {
@@ -317,7 +317,7 @@ public class RegisterServiceImpl implements RegisterService {
 			List<SundryDebtorsRegister> data = new ArrayList<SundryDebtorsRegister>();
 			String[] monthAndYr = month.split(" ");
 			YearMonth yearMonth = YearMonth.of(Integer.valueOf(monthAndYr[1]), Month.valueOf(monthAndYr[0]));
-			
+
 			data.addAll(invoiceData.stream().filter(i -> {
 				YearMonth yearMonthinvoice = YearMonth.from(i.getDate());
 				return (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))
@@ -326,7 +326,7 @@ public class RegisterServiceImpl implements RegisterService {
 				return new SundryDebtorsRegister(i.getDate(), "Sales invoice " + i.getInvoiceNo(),
 						i.getNetInvoiceAdjustment(), 0.0);
 			}).collect(Collectors.toList()));
-			
+
 			data.addAll(invoiceData.stream().filter(i -> i.getDateOfCollectionFromCcb() != null
 					&& (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))).flatMap(i -> {
 						List<LocalDate> dates = i.getDateOfCollectionFromCcb();
@@ -337,17 +337,17 @@ public class RegisterServiceImpl implements RegisterService {
 						}).mapToObj(idx -> new SundryDebtorsRegister(dates.get(idx),
 								"Collection invoice " + i.getInvoiceNo(), 0.0, amounts.get(idx)));
 					}).collect(Collectors.toList()));
-			
+
 			List<SundryDrOb> sundryDrOb = sundryDrObRepo.findByOfficeName(officeName);
 			data.addAll(sundryDrOb.stream().filter(i -> {
 				YearMonth yearMonthinvoice = YearMonth.from(i.getInvoiceDate());
 				return (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))
 						&& (yearMonthinvoice.equals(yearMonth) || yearMonthinvoice.isBefore(yearMonth));
 			}).map(i -> {
-				return new SundryDebtorsRegister(i.getInvoiceDate(), "Sales invoice " + i.getInvoiceNo(),
-						i.getAmount(), 0.0);
+				return new SundryDebtorsRegister(i.getInvoiceDate(), "Sales invoice " + i.getInvoiceNo(), i.getAmount(),
+						0.0);
 			}).collect(Collectors.toList()));
-			
+
 			data.addAll(sundryDrOb.stream().filter(i -> i.getDateOfCollectionFromCcb() != null
 					&& (ifmsId.isEmpty() || ifmsId.equals(i.getNameOfInstitution()))).flatMap(i -> {
 						List<LocalDate> dates = i.getDateOfCollectionFromCcb();
@@ -364,7 +364,6 @@ public class RegisterServiceImpl implements RegisterService {
 			throw new Exception(e);
 		}
 	}
-
 
 	private String joinJvHead(List<String> head) {
 		return String.join(", ", head);
@@ -443,7 +442,7 @@ public class RegisterServiceImpl implements RegisterService {
 							.equals(month) && (supplierName.isEmpty() || supplierName.equals(item.getSupplierName())))
 					.map(item -> {
 						double credit = 0.0, debit = 0.0;
-						debit = item.getPv().getAmount();
+						debit = item.getPvData().getAmount();
 						credit = item.getNetAdvanceValueAfterOthers() - item.getAvlAmountForCheckMemo();
 						return new CashChittaTable(item.getSupplierAdvanceNo(), item.getDate(), null, null, null,
 								credit, debit, "SUPPLIERADVANCE");

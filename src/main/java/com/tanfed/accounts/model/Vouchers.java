@@ -54,4 +54,6 @@ public class Vouchers {
 
 	private List<ContraEntryViewDto> contraEntry;
 	private List<ReconciliationEntry> reconciliationEntry;
+	
+	private List<BRS> brs;
 }

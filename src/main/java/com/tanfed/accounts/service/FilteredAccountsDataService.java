@@ -2,6 +2,7 @@ package com.tanfed.accounts.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.dto.ContraEntryViewDto;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.AccountsMaster;
@@ -22,13 +24,10 @@ import com.tanfed.accounts.repository.*;
 public class FilteredAccountsDataService {
 
 	@Autowired
-	private OpeningBalanceService openingBalanceService;
-
-	@Autowired
 	private OpeningBalanceRepo openingBalanceRepo;
 
 	@Autowired
-	private CashReceiptVoucherService cashReceiptVoucherService;
+	private BrsRepo brsRepo;
 
 	@Autowired
 	private ContraVoucherService contraVoucherService;
@@ -37,308 +36,149 @@ public class FilteredAccountsDataService {
 	private CashReceiptRepo cashReceiptRepo;
 
 	@Autowired
-	private AdjustmentReceiptVoucherService adjustmentReceiptVoucherService;
-
-	@Autowired
 	private AdjustmentReceiptVoucherRepo adjustmentReceiptVoucherRepo;
-
-	@Autowired
-	private PaymentVoucherService paymentVoucherService;
 
 	@Autowired
 	private PaymentVoucherRepo paymentVoucherRepo;
 
 	@Autowired
-	private JournalVoucherService journalVoucherService;
-
-	@Autowired
 	private JournalVoucherRepo journalVoucherRepo;
-
-	@Autowired
-	private SupplierAdvanceService supplierAdvanceService;
 
 	@Autowired
 	private SupplierAdvanceRepo supplierAdvanceRepo;
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 
 	@Autowired
 	private DebitOrCreditNoteRepo debitOrCreditNoteRepo;
-
-	@Autowired
-	private DebitCreditNoteService debitCreditNoteService;
 
 	private static Logger logger = LoggerFactory.getLogger(FilteredAccountsDataService.class);
 
 	public Vouchers getFilteredData(String formType, LocalDate fromDate, LocalDate toDate, String officeName,
 			String voucherStatus, String voucherNo, String jwt) throws Exception {
 		Vouchers data = new Vouchers();
+		logger.info(formType);
 
 		switch (formType) {
 		case "accountsMaster": {
-			List<AccountsMaster> accountsMasterListHandler = masterService.accountsMasterListHandler(jwt);
+			List<AccountsMaster> accountsMasterListHandler = masterService.fetchAccMasterData(jwt);
 			data.setAccountsMaster(accountsMasterListHandler);
 			return data;
 		}
 		case "taxInfo": {
-			List<TaxInfo> taxInfoListHandler = masterService.findTaxInfoListHandler(jwt);
+			List<TaxInfo> taxInfoListHandler = masterService.fetchTaxInfoData(jwt);
 			data.setTaxInfo(taxInfoListHandler);
 			return data;
 		}
 		case "beneficiaryMaster": {
-			List<BeneficiaryMaster> beneficiaryListByOfficeName = masterService.getBeneficiaryListByOfficeName(jwt,
-					officeName);
+			List<BeneficiaryMaster> beneficiaryListByOfficeName = masterService.fetchBeneficiaryMasterData(jwt).stream()
+					.filter(i -> i.getOfficeName().equals(officeName)).collect(Collectors.toList());
+			beneficiaryListByOfficeName.sort(Comparator.comparing(BeneficiaryMaster::getId).reversed());
 			data.setBeneficiaryMaster(beneficiaryListByOfficeName);
 			return data;
 		}
 		case "openingBalance": {
-			List<OpeningBalance> openingBalances = new ArrayList<OpeningBalance>();
-			List<OpeningBalance> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = openingBalanceService.getOpeningBalancesByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getOpDate().isBefore(fromDate) && !item.getOpDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					openingBalances.addAll(openingBalanceRepo.findPendingDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					openingBalances.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					openingBalances.addAll(openingBalanceRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					openingBalances.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					openingBalances.addAll(openingBalanceRepo.findPendingDataByOfficeName(officeName));
-					openingBalances.addAll(openingBalanceRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					openingBalances.addAll(filteredLst);
-				}
-			}
-			data.setOpeningBalance(openingBalances);
+
+			List<OpeningBalance> obData = openingBalanceRepo.findByOfficeName(officeName);
+			List<OpeningBalance> obFiltered = obData.stream()
+					.filter(i -> !i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getOpDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getOpDate().isAfter(toDate))))
+					.collect(Collectors.toList());
+			obFiltered.sort(Comparator.comparing(OpeningBalance::getId).reversed());
+			data.setOpeningBalance(obFiltered);
 			return data;
 		}
 		case "cashReceiptVoucher": {
-			List<CashReceiptVoucher> cashReceiptVouchers = new ArrayList<CashReceiptVoucher>();
-			List<CashReceiptVoucher> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = cashReceiptVoucherService.getVouchersByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherNo != null && !voucherNo.isEmpty()) {
-				logger.info(voucherNo);
-				cashReceiptVouchers.add(cashReceiptRepo.findByVoucherNo(voucherNo).get());
-			} else {
-				if (voucherStatus.equals("Pending")) {
-					if (fromDate == null && toDate == null) {
-						cashReceiptVouchers.addAll(cashReceiptRepo.findPendingDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						cashReceiptVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.equals("Approved")) {
-					if (fromDate == null && toDate == null) {
-						cashReceiptVouchers.addAll(cashReceiptRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						cashReceiptVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.isEmpty()) {
-					if (fromDate == null && toDate == null) {
-						cashReceiptVouchers.addAll(cashReceiptRepo.findPendingDataByOfficeName(officeName));
-						cashReceiptVouchers.addAll(cashReceiptRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						cashReceiptVouchers.addAll(filteredLst);
-					}
-				}
-
-			}
-			data.setCashReceiptVoucher(cashReceiptVouchers);
+			List<CashReceiptVoucher> crvData = cashReceiptRepo.findByOfficeName(officeName);
+			List<CashReceiptVoucher> crvFiltered = crvData.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))
+							&& (voucherNo.equals(i.getVoucherNo()) || voucherNo.isEmpty())))
+					.collect(Collectors.toList());
+			crvFiltered.sort(Comparator.comparing(CashReceiptVoucher::getId).reversed());
+			data.setCashReceiptVoucher(crvFiltered);
 			return data;
 		}
 		case "adjustmentReceiptVoucher": {
-			List<AdjustmentReceiptVoucher> adjustmentReceiptVouchers = new ArrayList<AdjustmentReceiptVoucher>();
-			List<AdjustmentReceiptVoucher> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = adjustmentReceiptVoucherService.getVoucherByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherNo != null && !voucherNo.isEmpty()) {
-				adjustmentReceiptVouchers.add(adjustmentReceiptVoucherRepo.findByVoucherNo(voucherNo).get());
-			} else {
-				if (voucherStatus.equals("Pending")) {
-					if (fromDate == null && toDate == null) {
-						adjustmentReceiptVouchers
-								.addAll(adjustmentReceiptVoucherRepo.findPendingDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						adjustmentReceiptVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.equals("Approved")) {
-					if (fromDate == null && toDate == null) {
-						adjustmentReceiptVouchers
-								.addAll(adjustmentReceiptVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						adjustmentReceiptVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.isEmpty()) {
-					if (fromDate == null && toDate == null) {
-						adjustmentReceiptVouchers
-								.addAll(adjustmentReceiptVoucherRepo.findPendingDataByOfficeName(officeName));
-						adjustmentReceiptVouchers
-								.addAll(adjustmentReceiptVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						adjustmentReceiptVouchers.addAll(filteredLst);
-					}
-				}
-
-			}
-			data.setAdjustmentReceiptVoucher(adjustmentReceiptVouchers);
+			List<AdjustmentReceiptVoucher> adjData = adjustmentReceiptVoucherRepo.findByOfficeName(officeName);
+			List<AdjustmentReceiptVoucher> adjFfiltered = adjData.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& i.getVoucherFor().equals("Adjustment Receipt")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))
+							&& (voucherNo.equals(i.getVoucherNo()) || voucherNo.isEmpty())))
+					.collect(Collectors.toList());
+			adjFfiltered.sort(Comparator.comparing(AdjustmentReceiptVoucher::getId).reversed());
+			data.setAdjustmentReceiptVoucher(adjFfiltered);
 			return data;
 		}
 		case "paymentVoucher": {
-			List<PaymentVoucher> paymentVouchers = new ArrayList<PaymentVoucher>();
-			List<PaymentVoucher> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = paymentVoucherService.getVoucherByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherNo != null && !voucherNo.isEmpty()) {
-				paymentVouchers.add(paymentVoucherRepo.findByVoucherNo(voucherNo).get());
-			} else {
-				if (voucherStatus.equals("Pending")) {
-					if (fromDate == null && toDate == null) {
-						paymentVouchers.addAll(paymentVoucherRepo.findPendingDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						paymentVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.equals("Approved")) {
-					if (fromDate == null && toDate == null) {
-						paymentVouchers.addAll(paymentVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						paymentVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.isEmpty()) {
-					if (fromDate == null && toDate == null) {
-						paymentVouchers.addAll(paymentVoucherRepo.findPendingDataByOfficeName(officeName));
-						paymentVouchers.addAll(paymentVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						paymentVouchers.addAll(filteredLst);
-					}
-				}
-			}
-			data.setPaymentVoucher(paymentVouchers);
+			List<PaymentVoucher> pvData = paymentVoucherRepo.findByOfficeName(officeName);
+			List<PaymentVoucher> pvFiltered = pvData.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& i.getVoucherFor().equals("Payment Voucher")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))
+							&& (voucherNo.equals(i.getVoucherNo()) || voucherNo.isEmpty())))
+					.collect(Collectors.toList());
+			pvFiltered.sort(Comparator.comparing(PaymentVoucher::getId).reversed());
+			data.setPaymentVoucher(pvFiltered);
 			return data;
 		}
 		case "contraEntry": {
-			List<ContraEntryViewDto> contraList = new ArrayList<ContraEntryViewDto>();
 			List<ContraEntryViewDto> mappedContra = fetchMappedContra(officeName);
-			if (fromDate != null && toDate != null) {
-				contraList = mappedContra.stream()
-						.filter(i -> (!i.getDate().isBefore(fromDate) && !i.getDate().isAfter(toDate))
-								&& (i.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty()))
-						.collect(Collectors.toList());
-			} else {
-				contraList.addAll(mappedContra.stream()
-						.filter(i -> (i.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty()))
-						.collect(Collectors.toList()));
-			}
-			data.setContraEntry(contraList);
+			List<ContraEntryViewDto> contraFiltered = mappedContra.stream()
+					.filter(i -> ((fromDate != null && !i.getDate().isBefore(fromDate)) || fromDate == null)
+							&& ((toDate != null && !i.getDate().isBefore(toDate)) || toDate == null)
+							&& (i.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty()))
+					.collect(Collectors.toList());
+			data.setContraEntry(contraFiltered);
 			return data;
 		}
 		case "journalVoucher": {
-			List<JournalVoucher> journalVouchers = new ArrayList<JournalVoucher>();
-			List<JournalVoucher> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = journalVoucherService.getJvByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getJvDate().isBefore(fromDate) && !item.getJvDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherNo != null && !voucherNo.isEmpty()) {
-				journalVouchers.add(journalVoucherRepo.findByVoucherNo(voucherNo).get());
-			} else {
-				if (voucherStatus.equals("Pending")) {
-					if (fromDate == null && toDate == null) {
-						journalVouchers.addAll(journalVoucherRepo.findPendingDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						journalVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.equals("Approved")) {
-					if (fromDate == null && toDate == null) {
-						journalVouchers.addAll(journalVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						journalVouchers.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.isEmpty()) {
-					if (fromDate == null && toDate == null) {
-						journalVouchers.addAll(journalVoucherRepo.findPendingDataByOfficeName(officeName));
-						journalVouchers.addAll(journalVoucherRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						journalVouchers.addAll(filteredLst);
-					}
-				}
-
-			}
-			data.setJournalVoucher(journalVouchers);
+			List<JournalVoucher> jvData = journalVoucherRepo.findByOfficeName(officeName);
+			List<JournalVoucher> jvFiltered = jvData.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected") && i.getJvFor().equals("Journal Voucher")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getJvDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getJvDate().isAfter(toDate))))
+							&& (voucherNo.equals(i.getVoucherNo()) || voucherNo.isEmpty())))
+					.collect(Collectors.toList());
+			jvFiltered.sort(Comparator.comparing(JournalVoucher::getId).reversed());
+			data.setJournalVoucher(jvFiltered);
 			return data;
 		}
-		case "drCrNote": {
-			List<DebitOrCreditNote> DebitOrCreditNote = new ArrayList<DebitOrCreditNote>();
-			List<DebitOrCreditNote> filteredLst = null;
-			if (fromDate != null && toDate != null) {
-				filteredLst = debitCreditNoteService.findDrCrNoteByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherNo != null && !voucherNo.isEmpty()) {
-				DebitOrCreditNote.add(debitOrCreditNoteRepo.findByDrCrNo(voucherNo).get());
-			} else {
-				if (voucherStatus.equals("Pending")) {
-					if (fromDate == null && toDate == null) {
-						DebitOrCreditNote.addAll(debitOrCreditNoteRepo.findPendingDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						DebitOrCreditNote.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.equals("Approved")) {
-					if (fromDate == null && toDate == null) {
-						DebitOrCreditNote.addAll(debitOrCreditNoteRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						DebitOrCreditNote.addAll(filteredLst);
-					}
-				}
-				if (voucherStatus.isEmpty()) {
-					if (fromDate == null && toDate == null) {
-						DebitOrCreditNote.addAll(debitOrCreditNoteRepo.findPendingDataByOfficeName(officeName));
-						DebitOrCreditNote.addAll(debitOrCreditNoteRepo.findApprovedDataByOfficeName(officeName));
-					} else if (fromDate != null && toDate != null) {
-						DebitOrCreditNote.addAll(filteredLst);
-					}
-				}
+		case "brs": {
+			List<BRS> brsData = brsRepo.findByOfficeName(officeName);
+			List<BRS> brsFiltered = brsData.stream()
+					.filter(i -> !i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getReconciliationDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getReconciliationDate().isAfter(toDate))))
+					.collect(Collectors.toList());
+			brsFiltered.sort(Comparator.comparing(BRS::getId).reversed());
+			data.setBrs(brsFiltered);
+			return data;
 
-			}
-			data.setDrCrNote(DebitOrCreditNote);
+		}
+		case "drCrNote": {
+			List<DebitOrCreditNote> drCrNote = debitOrCreditNoteRepo.findByOfficeName(officeName);
+			List<DebitOrCreditNote> drCrFiltered = drCrNote.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))
+							&& (voucherNo.equals(i.getDrCrNo()) || voucherNo.isEmpty())))
+					.collect(Collectors.toList());
+			drCrFiltered.sort(Comparator.comparing(DebitOrCreditNote::getId).reversed());
+			data.setDrCrNote(drCrFiltered);
 			return data;
 		}
 		default:
@@ -351,10 +191,13 @@ public class FilteredAccountsDataService {
 		List<ContraEntryViewDto> contraEntry = new ArrayList<ContraEntryViewDto>();
 		List<ContraEntry> contraEntryData = contraVoucherService.getContraByOfficeName(officeName);
 		for (var contra : contraEntryData) {
+
 			ContraEntryViewDto obj = new ContraEntryViewDto();
-			obj.setContraBetween(contra.getContraBetween());
 			obj.setDate(contra.getDate());
 			PaymentVoucher pv = fetchContraPv(contra.getContraId());
+			obj.setContraBetween((pv.getStatus() != null && pv.getStatus().equals("Amount Returned"))
+					? contra.getContraBetween() + " Contra Reversed"
+					: contra.getContraBetween());
 			obj.setId(pv.getId());
 			obj.setPaymentNo(pv.getVoucherNo());
 			obj.setPaymentMainHead(pv.getMainHead());
@@ -374,7 +217,8 @@ public class FilteredAccountsDataService {
 				obj.setReceiptSubHead(arv == null ? null : arv.getSubHead());
 				obj.setReceiptAmount(arv == null ? null : arv.getReceivedAmount());
 			}
-			if (contra.getContraBetween().startsWith("RO") || contra.getContraBetween().startsWith("HO")) {
+			if (contra.getContraBetween().startsWith("RO") || contra.getContraBetween().startsWith("HO")
+					|| contra.getContraBetween().equals("Invoice Collection Transfer")) {
 				obj.setToRegion(contra.getPaidTo());
 			}
 			contraEntry.add(obj);
@@ -412,178 +256,59 @@ public class FilteredAccountsDataService {
 
 		switch (formType) {
 		case "supplierAdvance": {
-			List<SupplierAdvance> SupplierAdvances = new ArrayList<SupplierAdvance>();
-			List<SupplierAdvance> filteredLst = null;
-
-			if (fromDate != null && toDate != null) {
-				filteredLst = supplierAdvanceService.fetchOutstandingAdvancesByProduct(null).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					SupplierAdvances.addAll(supplierAdvanceRepo.findPendingData());
-				} else if (fromDate != null && toDate != null) {
-					SupplierAdvances.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					SupplierAdvances.addAll(supplierAdvanceRepo.findApprovedData());
-				} else if (fromDate != null && toDate != null) {
-					SupplierAdvances.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					SupplierAdvances.addAll(supplierAdvanceRepo.findPendingData());
-					SupplierAdvances.addAll(supplierAdvanceRepo.findApprovedData());
-				} else if (fromDate != null && toDate != null) {
-					SupplierAdvances.addAll(filteredLst);
-				}
-			}
-			data.setSupplierAdvance(SupplierAdvances);
+			List<SupplierAdvance> sa = supplierAdvanceRepo.findAll();
+			List<SupplierAdvance> saFiltered = sa.stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))))
+					.collect(Collectors.toList());
+			saFiltered.sort(Comparator.comparing(SupplierAdvance::getId).reversed());
+			data.setSupplierAdvance(saFiltered);
 			return data;
 		}
 		case "billsGstOb": {
-			List<BillsGstOb> billsGstObs = new ArrayList<BillsGstOb>();
-			List<BillsGstOb> filteredLst = null;
-
-			if (fromDate != null && toDate != null) {
-				filteredLst = billsGstObRepo.findByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					billsGstObs.addAll(billsGstObRepo.findPendingDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					billsGstObs.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					billsGstObs.addAll(billsGstObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					billsGstObs.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					billsGstObs.addAll(billsGstObRepo.findPendingDataByOfficeName(officeName));
-					billsGstObs.addAll(billsGstObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					billsGstObs.addAll(filteredLst);
-				}
-			}
-			data.setBillsGstOb(billsGstObs);
+			List<BillsGstOb> filteredLst = billsGstObRepo.findByOfficeName(officeName).stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))))
+					.collect(Collectors.toList());
+			filteredLst.sort(Comparator.comparing(BillsGstOb::getId).reversed());
+			data.setBillsGstOb(filteredLst);
 			return data;
 		}
 		case "sundryCrOb": {
-			List<SundryCrOb> sundryCrObs = new ArrayList<SundryCrOb>();
-			List<SundryCrOb> filteredLst = null;
-
-			if (fromDate != null && toDate != null) {
-				filteredLst = sundryCrObRepo.findByOfficeName(null).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getInvoiceDate().isBefore(fromDate) && !item.getInvoiceDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					sundryCrObs.addAll(sundryCrObRepo.findPendingDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryCrObs.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					sundryCrObs.addAll(sundryCrObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryCrObs.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					sundryCrObs.addAll(sundryCrObRepo.findPendingDataByOfficeName(officeName));
-					sundryCrObs.addAll(sundryCrObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryCrObs.addAll(filteredLst);
-				}
-			}
-			data.setSundryCrOb(sundryCrObs);
+			List<SundryCrOb> filteredLst = sundryCrObRepo.findByOfficeName(officeName).stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getInvoiceDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getInvoiceDate().isAfter(toDate))))))
+					.collect(Collectors.toList());
+			filteredLst.sort(Comparator.comparing(SundryCrOb::getId).reversed());
+			data.setSundryCrOb(filteredLst);
 			return data;
 		}
 		case "sundryDrOb": {
-			List<SundryDrOb> sundryDrOb = new ArrayList<SundryDrOb>();
-			List<SundryDrOb> filteredLst = null;
-
-			if (fromDate != null && toDate != null) {
-				filteredLst = sundryDrObRepo.findByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getInvoiceDate().isBefore(fromDate) && !item.getInvoiceDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					sundryDrOb.addAll(sundryDrObRepo.findPendingDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryDrOb.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					sundryDrOb.addAll(sundryDrObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryDrOb.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					sundryDrOb.addAll(sundryDrObRepo.findPendingDataByOfficeName(officeName));
-					sundryDrOb.addAll(sundryDrObRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					sundryDrOb.addAll(filteredLst);
-				}
-			}
-			data.setSundryDrOb(sundryDrOb);
+			List<SundryDrOb> filteredLst = sundryDrObRepo.findByOfficeName(officeName).stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getInvoiceDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getInvoiceDate().isAfter(toDate))))))
+					.collect(Collectors.toList());
+			filteredLst.sort(Comparator.comparing(SundryDrOb::getId).reversed());
+			data.setSundryDrOb(filteredLst);
 			return data;
 		}
 		case "reconciliationEntry": {
-			List<ReconciliationEntry> reconEntry = new ArrayList<ReconciliationEntry>();
-			List<ReconciliationEntry> filteredLst = null;
-
-			if (fromDate != null && toDate != null) {
-				filteredLst = reconciliationEntryRepo.findByOfficeName(officeName).stream()
-						.filter(item -> (item.getVoucherStatus().equals(voucherStatus) || voucherStatus.isEmpty())
-								&& !item.getDate().isBefore(fromDate) && !item.getDate().isAfter(toDate))
-						.collect(Collectors.toList());
-			}
-			if (voucherStatus.equals("Pending")) {
-				if (fromDate == null && toDate == null) {
-					reconEntry.addAll(reconciliationEntryRepo.findPendingDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					reconEntry.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.equals("Approved")) {
-				if (fromDate == null && toDate == null) {
-					reconEntry.addAll(reconciliationEntryRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					reconEntry.addAll(filteredLst);
-				}
-			}
-			if (voucherStatus.isEmpty()) {
-				if (fromDate == null && toDate == null) {
-					reconEntry.addAll(reconciliationEntryRepo.findPendingDataByOfficeName(officeName));
-					reconEntry.addAll(reconciliationEntryRepo.findApprovedDataByOfficeName(officeName));
-				} else if (fromDate != null && toDate != null) {
-					reconEntry.addAll(filteredLst);
-				}
-			}
-			data.setReconciliationEntry(reconEntry);
+			List<ReconciliationEntry> filteredLst = reconciliationEntryRepo.findByOfficeName(officeName).stream()
+					.filter(i -> ((!i.getVoucherStatus().equals("Rejected")
+							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
+							&& (fromDate == null || (fromDate != null && !i.getDate().isBefore(fromDate)))
+							&& (toDate == null || (toDate != null && !i.getDate().isAfter(toDate))))))
+					.collect(Collectors.toList());
+			filteredLst.sort(Comparator.comparing(ReconciliationEntry::getId).reversed());
+			data.setReconciliationEntry(filteredLst);
 			return data;
 		}
 		default:

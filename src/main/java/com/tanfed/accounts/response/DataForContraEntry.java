@@ -16,8 +16,8 @@ public class DataForContraEntry {
 	private Set<String> receiptAccountTypeList;
 	private List<String> officeNameList;
 	private List<Long> paymentAccNoList;
-	private String PaymentBranchName;
+	private Set<String> paymentBranchNameList;
 	private List<Long> receiptAccNoList;
-	private String receiptBranchName;
+	private Set<String> receiptBranchNameList;
 	private Double balance;
 }

@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.tanfed.accounts.components.InterTransferReceipts;
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.AdjustmentReceiptVoucher;
 import com.tanfed.accounts.entity.ClosingBalanceTable;
@@ -24,6 +25,7 @@ import com.tanfed.accounts.repository.ClosingBalanceRepo;
 import com.tanfed.accounts.repository.PaymentVoucherRepo;
 import com.tanfed.accounts.response.DataForPaymentVoucher;
 import com.tanfed.accounts.utils.CodeGenerator;
+import com.tanfed.accounts.utils.RoundToDecimalPlace;
 
 @Service
 public class PaymentVoucherServiceImpl implements PaymentVoucherService {
@@ -160,10 +162,11 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 					try {
 						AdjustmentReceiptVoucher AdjustmentReceiptVoucher = new AdjustmentReceiptVoucher(null, null,
 								item.getVoucherNo(), item.getOfficeName(), null, null, null, null, item.getOnlineDate(),
-								"Reversed", null, null, item.getAmount(), "Other Online", item.getUtrNumber(),
-								item.getOnlineDate(), item.getBranchName(), item.getMainHead(), item.getSubHead(),
-								item.getNarration(), "No", null, item.getAccountType(), item.getAccountNo(),
-								item.getBranchName(), item.getOnlineDate(), null, null, null, null);
+								"Payment Reversed", null, "Payment Reversed", item.getAmount(), "Other Online",
+								item.getUtrNumber(), item.getOnlineDate(), item.getBranchName(), item.getMainHead(),
+								item.getSubHead(), item.getNarration(), "No", null, item.getAccountType(),
+								item.getAccountNo(), item.getBranchName(), item.getOnlineDate(), null, null, null,
+								null);
 						adjustmentReceiptVoucherService.saveAdjustmentReceiptVoucher(AdjustmentReceiptVoucher, jwt);
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -234,26 +237,29 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 	}
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 	private static Logger logger = LoggerFactory.getLogger(PaymentVoucherServiceImpl.class);
 
 	@Override
 	public DataForPaymentVoucher getDataForPaymentVoucher(String officeName, String accountType, String accountNo,
-			String jwt, String mainHead, String paidTo, LocalDate date, String pvType) throws Exception {
+			String branchName, String jwt, String mainHead, String paidTo, LocalDate date, String pvType, String voucherNo)
+			throws Exception {
 		try {
 			DataForPaymentVoucher data = new DataForPaymentVoucher();
 			logger.info("officeName {}", officeName);
 			if (officeName != null && !officeName.isEmpty()) {
 				data.setPrevVoucherNotApproved(false);
-				data.setBeneficiaryNameList(masterService.getBeneficiaryListByOfficeName(jwt, officeName).stream()
-						.filter(item -> item.getBeneficiaryApplicableToHoAccount().contains(mainHead))
+				data.setBeneficiaryNameList(masterService.fetchBeneficiaryMasterData(jwt).stream()
+						.filter(item -> item.getOfficeName().equals(officeName)
+								&& item.getBeneficiaryApplicableToHoAccount().contains(mainHead))
 						.map(item -> item.getBeneficiaryName()).collect(Collectors.toSet()));
 
-				List<BankInfo> bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, officeName);
+				List<BankInfo> bankInfo = masterService.fetchBankInfoData(jwt).stream()
+						.filter(item -> item.getOfficeName().equals(officeName)).collect(Collectors.toList());
 
 				if (paidTo != null && !paidTo.isEmpty()) {
-					List<BeneficiaryMaster> collect = masterService.getBeneficiaryListByOfficeName(jwt, officeName)
-							.stream().filter(item -> item.getBeneficiaryName().equals(paidTo))
+					List<BeneficiaryMaster> collect = masterService.fetchBeneficiaryMasterData(jwt).stream().filter(
+							item -> item.getOfficeName().equals(officeName) && item.getBeneficiaryName().equals(paidTo))
 							.collect(Collectors.toList());
 					if (collect.isEmpty()) {
 						throw new Exception("No Beneficiary Found For " + paidTo + " in " + officeName);
@@ -267,16 +273,18 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 							.map(BankInfo::getAccountNumber).collect(Collectors.toList()));
 
 					if (accountNo != null && !accountNo.isEmpty()) {
-						data.setBranchName(bankInfo.stream()
+						data.setBranchNameList(bankInfo.stream()
 								.filter(item -> item.getAccountType().equals(accountType)
 										&& item.getAccountNumber().equals(Long.valueOf(accountNo)))
-								.map(BankInfo::getBranchName).collect(Collectors.toList()).get(0));
+								.map(BankInfo::getBranchName).collect(Collectors.toSet()));
 					}
 				}
 				if (pvType.equals("Cash Payment Voucher") || pvType.equals("Online Payment Voucher")
 						|| pvType.equals("Cheque Payment Voucher")) {
-					data.setPrevVoucherNotApproved(checkPrevPaymentForApproval(pvType, officeName, accountNo));
-					data.setBalance(getAvlBalance(pvType, date, officeName, accountNo));
+					data.setPrevVoucherNotApproved(
+							checkPrevPaymentForApproval(pvType, officeName, accountNo, data, voucherNo));
+					data.setBalance(RoundToDecimalPlace
+							.roundToTwoDecimalPlaces(getAvlBalance(pvType, date, officeName, accountNo, branchName)));
 				}
 			}
 			return data;
@@ -285,20 +293,23 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 		}
 	}
 
-	private Boolean checkPrevPaymentForApproval(String pvType, String officeName, String accountNo) {
+	private Boolean checkPrevPaymentForApproval(String pvType, String officeName, String accountNo,
+			DataForPaymentVoucher data, String voucherNo) {
 		List<PaymentVoucher> pendingPvs = paymentVoucherRepo.findPendingDataByOfficeName(officeName).stream()
 				.filter(item -> {
 					if (pvType.equals("Cash Payment Voucher")) {
 						return item.getPvType().equals(pvType);
 					} else {
-						return item.getPvType().equals(pvType)
+						return item.getPvType().equals(pvType) && !item.getVoucherNo().equals(voucherNo)
 								&& (!accountNo.isEmpty() && item.getAccountNo().equals(Long.valueOf(accountNo)));
 					}
 				}).collect(Collectors.toList());
+		data.setPage(pendingPvs.isEmpty() ? null : pendingPvs.get(0).getVoucherFor());
 		return pendingPvs.isEmpty() ? false : true;
 	}
 
-	private Double getAvlBalance(String pvType, LocalDate date, String officeName, String accountNo) {
+	private Double getAvlBalance(String pvType, LocalDate date, String officeName, String accountNo,
+			String branchName) {
 		if (pvType.equals("Cash Payment Voucher")) {
 			List<ClosingBalanceTable> obData;
 			int n = 0;
@@ -306,19 +317,26 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 				LocalDate previousDate = date.minusDays(n++);
 				obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
 						.filter(item -> item.getCashBalance() != null).collect(Collectors.toList());
+				if (n == 365) {
+					break;
+				}
 			} while (obData.isEmpty());
-			return obData.get(0).getCashBalance();
+			return obData.isEmpty() ? 0.0 : obData.get(0).getCashBalance();
 		} else {
-			if (accountNo != null && !accountNo.isEmpty()) {
+			if (accountNo != null && !accountNo.isEmpty() && branchName != null && !branchName.isEmpty()) {
 				List<ClosingBalanceTable> obData;
 				int n = 0;
 				do {
 					LocalDate previousDate = date.minusDays(n++);
 					obData = closingBalanceRepo.findByOfficeNameAndDate(officeName, previousDate).stream()
-							.filter(item -> item.getAccNo() != null && item.getAccNo().equals(Long.valueOf(accountNo)))
+							.filter(item -> item.getAccNo() != null && item.getBranchName().equals(branchName)
+									&& item.getAccNo().equals(Long.valueOf(accountNo)))
 							.collect(Collectors.toList());
+					if (n == 365) {
+						break;
+					}
 				} while (obData.isEmpty());
-				return obData.get(0).getBankBalance();
+				return obData.isEmpty() ? 0.0 : obData.get(0).getBankBalance();
 			} else {
 				return 0.0;
 			}
@@ -343,21 +361,22 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 								.filter(item -> item.getCashBalance() != null).collect(Collectors.toList());
 						if (n == 365) {
 							closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(),
-									obj.getAmount(), null, null, null));
+									obj.getAmount(), null, null, null, null));
 							break;
 						}
 					}
 					closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(),
-							cb.get(0).getCashBalance() - obj.getAmount(), null, null, null));
+							cb.get(0).getCashBalance() - obj.getAmount(), null, null, null, null));
 				} else {
 					cb.get(0).setCashBalance(cb.get(0).getCashBalance() - obj.getAmount());
 					closingBalanceRepo.save(cb.get(0));
 				}
-				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "cash", null);
+				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "cash", null, null);
 			} else {
 				List<ClosingBalanceTable> cb = closingBalanceRepo
 						.findByOfficeNameAndDate(obj.getOfficeName(), obj.getDate()).stream()
 						.filter(item -> item.getCashBalance() == null && item.getAccType().equals(obj.getAccountType())
+								&& item.getBranchName().equals(obj.getBranchName())
 								&& item.getAccNo().equals(obj.getAccountNo()))
 						.collect(Collectors.toList());
 				if (cb.isEmpty()) {
@@ -367,28 +386,33 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 						cb = closingBalanceRepo.findByOfficeNameAndDate(obj.getOfficeName(), prevDate).stream()
 								.filter(item -> item.getCashBalance() == null
 										&& item.getAccType().equals(obj.getAccountType())
+										&& item.getBranchName().equals(obj.getBranchName())
 										&& item.getAccNo().equals(obj.getAccountNo()))
 								.collect(Collectors.toList());
 						if (n == 365) {
 							closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(),
-									null, obj.getAmount(), obj.getAccountType(), obj.getAccountNo()));
+									null, obj.getAmount(), obj.getAccountType(), obj.getBranchName(),
+									obj.getAccountNo()));
 							break;
 						}
 					}
 					closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getDate(), null,
-							cb.get(0).getBankBalance() - obj.getAmount(), obj.getAccountType(), obj.getAccountNo()));
+							cb.get(0).getBankBalance() - obj.getAmount(), obj.getAccountType(), obj.getBranchName(),
+							obj.getAccountNo()));
 				} else {
 					cb.get(0).setBankBalance(cb.get(0).getBankBalance() - obj.getAmount());
 					closingBalanceRepo.save(cb.get(0));
 				}
-				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "bank", obj.getAccountNo());
+				updateCbAfterDate(obj.getOfficeName(), obj.getDate(), obj.getAmount(), "bank", obj.getAccountNo(),
+						obj.getBranchName());
 			}
 		} catch (Exception e) {
 			throw new Exception(e);
 		}
 	}
 
-	private void updateCbAfterDate(String officeName, LocalDate date, Double amount, String type, Long accountNo) {
+	private void updateCbAfterDate(String officeName, LocalDate date, Double amount, String type, Long accountNo,
+			String branchName) {
 		if (type.equals("cash")) {
 			List<ClosingBalanceTable> cbData = closingBalanceRepo.findByOfficeName(officeName).stream()
 					.filter(item -> item.getCashBalance() != null && item.getDate().isAfter(date))
@@ -398,9 +422,9 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			});
 			closingBalanceRepo.saveAll(cbData);
 		} else {
-			List<ClosingBalanceTable> cbData = closingBalanceRepo
-					.findByOfficeName(officeName).stream().filter(item -> item.getCashBalance() == null
-							&& item.getAccNo().equals(accountNo) && item.getDate().isAfter(date))
+			List<ClosingBalanceTable> cbData = closingBalanceRepo.findByOfficeName(officeName).stream()
+					.filter(item -> item.getCashBalance() == null && item.getAccNo().equals(accountNo)
+							&& item.getBranchName().equals(branchName) && item.getDate().isAfter(date))
 					.collect(Collectors.toList());
 			cbData.forEach(item -> {
 				item.setBankBalance(item.getBankBalance() - amount);
@@ -415,7 +439,11 @@ public class PaymentVoucherServiceImpl implements PaymentVoucherService {
 			PaymentVoucher paymentVoucher = paymentVoucherRepo.findById(obj.getId()).get();
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			paymentVoucher.getEmpId().add(empId);
-			paymentVoucher.setVoucherStatus("Rejected");
+			paymentVoucher.setVoucherStatus(obj.getVoucherStatus());
+			if (obj.getVoucherStatus().equals("Approved")) {
+				updateClosingBalance(obj);
+				paymentVoucher.setApprovedDate(LocalDate.now());
+			}
 			paymentVoucherRepo.save(paymentVoucher);
 		} catch (Exception e) {
 			throw new Exception(e);

@@ -55,7 +55,7 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 //				Saving data in database
 				openingBalanceRepo.save(data);
 				closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getCashBalanceDate(),
-						obj.getAmount(), null, null, null));
+						obj.getAmount(), null, null, null, null));
 			}
 
 			if (obj.getOpeningBalanceFor().equals("Bank")) {
@@ -230,9 +230,10 @@ public class OpeningBalanceServiceImpl implements OpeningBalanceService {
 					.collect(Collectors.toList());
 			if (cb.isEmpty()) {
 				closingBalanceRepo.save(new ClosingBalanceTable(null, obj.getOfficeName(), obj.getBankBalanceDate(),
-						null, obj.getPassbookAmount(), obj.getAccountType(), obj.getAccountNumber()));
+						null, obj.getDayBookAmount(), obj.getAccountType(), obj.getBranchName(),
+						obj.getAccountNumber()));
 			} else {
-				cb.get(0).setBankBalance(cb.get(0).getBankBalance() + obj.getPassbookAmount());
+				cb.get(0).setBankBalance(cb.get(0).getBankBalance() + obj.getDayBookAmount());
 				closingBalanceRepo.save(cb.get(0));
 			}
 		} catch (Exception e) {

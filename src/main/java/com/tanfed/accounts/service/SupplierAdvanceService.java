@@ -5,8 +5,6 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 
-import com.tanfed.accounts.entity.JournalVoucher;
-import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.entity.SupplierAdvance;
 import com.tanfed.accounts.model.JvAndPvObj;
 import com.tanfed.accounts.response.DataForSupplierAdvance;
@@ -22,7 +20,7 @@ public interface SupplierAdvanceService {
 
 	public List<SupplierAdvance> fetchOutstandingAdvancesByProduct(String productName) throws Exception;
 	
-	public void revertPvAndJv(SupplierAdvance obj, String jwt, PaymentVoucher pv, JournalVoucher jv) throws Exception;
+	public void revertPvAndJv(SupplierAdvance obj, String jwt) throws Exception;
 
 	public void updateAvlQtyAndAmount(String supplierAdvanceNo, double qty, double amount) throws Exception;
 	

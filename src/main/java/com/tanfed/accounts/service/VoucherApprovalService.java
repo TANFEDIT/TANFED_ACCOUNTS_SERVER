@@ -27,6 +27,9 @@ public class VoucherApprovalService {
 	private CashReceiptRepo cashReceiptRepo;
 
 	@Autowired
+	private BrsRepo brsRepo;
+
+	@Autowired
 	private CashReceiptVoucherService cashReceiptVoucherService;
 
 	@Autowired
@@ -160,9 +163,7 @@ public class VoucherApprovalService {
 
 			}
 			if (obj.getVoucherStatus().equals("Rejected")) {
-				if (pv.getVoucherFor().equals("supplier advance")) {
-					supplierAdvanceService.revertPvAndJv(null, jwt, pv, null);
-				}
+
 			}
 			if (oldDesignation == null) {
 				pv.setDesignation(Arrays.asList(designation));
@@ -184,13 +185,7 @@ public class VoucherApprovalService {
 			if (obj.getVoucherStatus().equals("Approved")) {
 				jv.setApprovedDate(LocalDate.now());
 			}
-			if (obj.getVoucherStatus().equals("Rejected")) {
-				if (jv.getJvFor().equals("supplier advance")) {
-					supplierAdvanceService.revertPvAndJv(null, jwt, null, jv);
-				} else if (jv.getJvFor().equals("Wagon GRN")) {
-					inventryService.revertJvHandler(jv.getIdNo(), jwt);
-				}
-			}
+
 			if (oldDesignation == null) {
 				jv.setDesignation(Arrays.asList(designation));
 			} else {
@@ -218,6 +213,26 @@ public class VoucherApprovalService {
 				debitOrCreditNote.getDesignation().add(designation);
 			}
 			debitOrCreditNoteRepo.save(debitOrCreditNote);
+			return designation;
+		}
+
+		case "brs": {
+			BRS brs = brsRepo.findById(Long.valueOf(obj.getId())).orElse(null);
+
+			designation = userService.getNewDesignation(empId);
+			oldDesignation = brs.getDesignation();
+
+			brs.setVoucherStatus(obj.getVoucherStatus());
+			brs.getEmpId().add(empId);
+			if (obj.getVoucherStatus().equals("Approved")) {
+				brs.setApprovedDate(LocalDate.now());
+			}
+			if (oldDesignation == null) {
+				brs.setDesignation(Arrays.asList(designation));
+			} else {
+				brs.getDesignation().add(designation);
+			}
+			brsRepo.save(brs);
 			return designation;
 		}
 		default:
@@ -254,16 +269,11 @@ public class VoucherApprovalService {
 
 			sa.setVoucherStatus(obj.getVoucherStatus());
 			sa.getEmpId().add(empId);
+			supplierAdvanceService.revertPvAndJv(sa, jwt);
 			if (obj.getVoucherStatus().equals("Approved")) {
 				sa.setApprovedDate(LocalDate.now());
 			}
-			if (obj.getVoucherStatus().equals("Rejected")) {
-				try {
-					supplierAdvanceService.revertPvAndJv(sa, jwt, null, null);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+
 			if (oldDesignation == null) {
 				sa.setDesignation(Arrays.asList(designation));
 			} else {

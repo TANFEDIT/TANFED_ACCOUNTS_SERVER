@@ -14,10 +14,9 @@ public interface ContraVoucherService {
 
 	public DataForContraEntry getDataForContraEntry(String officeName, String jwt, String paymentAccType, String pvType,
 			String contraBetween, String receiptAccType, LocalDate date, String paymentAccountNo,
-			String receiptAccountNo, String paidTo) throws Exception;
+			String paymentBranchName, String receiptAccountNo, String paidTo) throws Exception;
 
 	public ResponseEntity<String> saveContraEntry(ContraEntryDto obj, String jwt) throws Exception;
-
 
 	public ContraEntry getContraById(String contraId) throws Exception;
 

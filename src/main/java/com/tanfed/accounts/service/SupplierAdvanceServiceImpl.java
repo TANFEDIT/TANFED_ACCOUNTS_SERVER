@@ -14,9 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.config.JwtTokenValidator;
-import com.tanfed.accounts.entity.JournalVoucher;
-import com.tanfed.accounts.entity.PaymentVoucher;
 import com.tanfed.accounts.entity.SupplierAdvance;
 import com.tanfed.accounts.model.BeneficiaryMaster;
 import com.tanfed.accounts.model.JvAndPvObj;
@@ -30,7 +29,7 @@ import com.tanfed.accounts.utils.CodeGenerator;
 public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 
 	@Autowired
 	private SupplierAdvanceRepo supplierAdvanceRepo;
@@ -72,12 +71,12 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 					String month = String.format("%s%s%04d",
 							item.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH), " ",
 							item.getDate().getYear());
-					return month.equals(advanceMonth);
+					return month.equals(advanceMonth) && !item.getVoucherStatus().equals("Rejected");
 				}).collect(Collectors.toList()));
 			}
 			if (activity != null && !activity.isEmpty()) {
 				logger.info(activity);
-				List<ProductMaster> productDataHandler = masterService.getProductDataHandler(jwt);
+				List<ProductMaster> productDataHandler = masterService.fetchProductMasterData(jwt);
 				data.setSupplierNameList(productDataHandler.stream().filter(
 						item -> item.getActivity().equals(activity) && !item.getSupplierName().startsWith("TANFED"))
 						.map(ProductMaster::getSupplierName).collect(Collectors.toSet()));
@@ -87,9 +86,9 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 							item -> item.getActivity().equals(activity) && item.getSupplierName().equals(supplierName))
 							.map(ProductMaster::getProductName).collect(Collectors.toList()));
 
-					List<BeneficiaryMaster> beneficiaryMaster = masterService
-							.getBeneficiaryListByOfficeName(jwt, officeName).stream()
-							.filter(item -> item.getBeneficiaryName().equals(supplierName))
+					List<BeneficiaryMaster> beneficiaryMaster = masterService.fetchBeneficiaryMasterData(jwt).stream()
+							.filter(item -> item.getOfficeName().equals(officeName)
+									&& item.getBeneficiaryName().equals(supplierName))
 							.collect(Collectors.toList());
 					if (beneficiaryMaster.isEmpty()) {
 						throw new Exception("Create Beneficiary Master For " + supplierName);
@@ -97,8 +96,9 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 					data.setAccountsNo(beneficiaryMaster.get(0).getAccountNo());
 
 					if (productName != null && !productName.isEmpty()) {
-						ProductMaster productMaster = masterService.getProductDataByProductNameHandler(jwt,
-								productName);
+						ProductMaster productMaster = masterService.fetchProductMasterData(jwt).stream()
+								.filter(i -> i.getProductName().equals(productName)).collect(Collectors.toList())
+								.get(0);
 						data.setProductCategory(productMaster.getProductCategory());
 						data.setProductGroup(productMaster.getProductGroup());
 						data.setPacking(productMaster.getPacking());
@@ -117,9 +117,7 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 									.map(item -> item.getTermsNo()).collect(Collectors.toList()));
 							if (termsNo != null && !termsNo.isEmpty()) {
 								TermsPrice termsPrice = inventryService.getTermsDataByTermsNoHandler(termsNo, jwt);
-								data.setBasicPrice(termsPrice.getPurchaseTermsPricing().getBasicPrice());
-								data.setGstRate(termsPrice.getPurchaseTermsPricing().getGstRate());
-								data.setGstValue(termsPrice.getPurchaseTermsPricing().getGstValue());
+								data.setPurchasePricing(termsPrice.getPurchaseTermsPricing());
 							}
 						}
 					}
@@ -144,14 +142,14 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 				SupplierAdvance supplierAdvance = supplierAdvanceRepo.findBySupplierAdvanceNo(supplierAdvanceNo).get();
 				obj.getPv().setIdNo(supplierAdvanceNo);
 				paymentVoucherService.savePaymentVoucher(obj.getPv(), jwt);
-				supplierAdvance.setPv(obj.getPv());
+				supplierAdvance.setPvData(obj.getPv());
 				supplierAdvanceRepo.save(supplierAdvance);
 			}
 			if (obj.getJv() != null) {
 				SupplierAdvance supplierAdvance = supplierAdvanceRepo.findBySupplierAdvanceNo(supplierAdvanceNo).get();
 				obj.getJv().setIdNo(supplierAdvanceNo);
 				journalVoucherService.saveJournalVoucher(obj.getJv(), jwt);
-				supplierAdvance.setJv(obj.getJv());
+				supplierAdvance.setJvData(obj.getJv());
 				supplierAdvanceRepo.save(supplierAdvance);
 			}
 			return new ResponseEntity<String>("Updated Successfully", HttpStatus.ACCEPTED);
@@ -174,21 +172,13 @@ public class SupplierAdvanceServiceImpl implements SupplierAdvanceService {
 	}
 
 	@Override
-	public void revertPvAndJv(SupplierAdvance obj, String jwt, PaymentVoucher pv, JournalVoucher jv) throws Exception {
+	public void revertPvAndJv(SupplierAdvance obj, String jwt) throws Exception {
 		try {
 			if (obj != null) {
-				paymentVoucherService.revertSupplierAdvancePv(obj.getPv(), jwt);
-				journalVoucherService.revertSupplierAdvanceJv(obj.getJv(), jwt);
-			}
-			if (pv != null) {
-				SupplierAdvance supplierAdvance = supplierAdvanceRepo.findBySupplierAdvanceNo(pv.getIdNo()).get();
-				supplierAdvance.setPv(null);
-				supplierAdvanceRepo.save(supplierAdvance);
-			}
-			if (jv != null) {
-				SupplierAdvance supplierAdvance = supplierAdvanceRepo.findBySupplierAdvanceNo(jv.getIdNo()).get();
-				supplierAdvance.setJv(null);
-				supplierAdvanceRepo.save(supplierAdvance);
+				obj.getPvData().setVoucherStatus(obj.getVoucherStatus());
+				paymentVoucherService.revertSupplierAdvancePv(obj.getPvData(), jwt);
+				obj.getJvData().setVoucherStatus(obj.getVoucherStatus());
+				journalVoucherService.revertSupplierAdvanceJv(obj.getJvData(), jwt);
 			}
 		} catch (Exception e) {
 			throw new Exception(e);

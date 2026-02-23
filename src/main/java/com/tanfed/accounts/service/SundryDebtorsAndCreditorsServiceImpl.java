@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.tanfed.accounts.components.MasterDataManager;
 import com.tanfed.accounts.config.JwtTokenValidator;
 import com.tanfed.accounts.entity.*;
 import com.tanfed.accounts.model.BuyerFirmInfo;
@@ -26,6 +27,7 @@ import com.tanfed.accounts.model.VoucherApproval;
 import com.tanfed.accounts.repository.*;
 import com.tanfed.accounts.response.DataForSundryDebtor;
 import com.tanfed.accounts.utils.CodeGenerator;
+import com.tanfed.accounts.utils.RoundToDecimalPlace;
 
 import jakarta.transaction.Transactional;
 
@@ -36,7 +38,7 @@ import com.tanfed.accounts.model.InvoiceCollectionObject;
 public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCreditorsService {
 
 	@Autowired
-	private MasterService masterService;
+	private MasterDataManager masterService;
 
 	@Autowired
 	private CashReceiptVoucherService cashReceiptVoucherService;
@@ -58,7 +60,8 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 		try {
 			DataForSundryDebtor data = new DataForSundryDebtor();
 			if (ifmsId != null && !ifmsId.isEmpty()) {
-				BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt, ifmsId);
+				BuyerFirmInfo buyerFirmInfo = masterService.fetchBuyerFirmInfoData(jwt).stream()
+						.filter(i -> i.getIfmsIdNo().equals(ifmsId)).collect(Collectors.toList()).get(0);
 				data.setBlock(buyerFirmInfo.getBlock());
 				data.setDistrict(buyerFirmInfo.getDistrict());
 				data.setGstNo(buyerFirmInfo.getBuyerGstNo());
@@ -103,8 +106,8 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					data.setSubHead(debitOrCreditNote.getSubHead());
 					data.setRemarks(debitOrCreditNote.getRemarks());
 					if (debitOrCreditNote.getIfmsId() != null) {
-						BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt,
-								debitOrCreditNote.getIfmsId());
+						BuyerFirmInfo buyerFirmInfo = masterService.fetchBuyerFirmInfoData(jwt).stream()
+								.filter(i -> i.getIfmsIdNo().equals(ifmsId)).collect(Collectors.toList()).get(0);
 						data.setBlock(buyerFirmInfo.getBlock());
 						data.setDistrict(buyerFirmInfo.getDistrict());
 						data.setGstNo(buyerFirmInfo.getBuyerGstNo());
@@ -114,8 +117,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 						data.setAddress(buyerFirmInfo.getAddress());
 						data.setIfmsId(buyerFirmInfo.getIfmsIdNo());
 					} else {
-						SupplierInfo supplierInfo = masterService
-								.getSupplierInfoBySupplierNameHandler(debitOrCreditNote.getName(), jwt);
+						SupplierInfo supplierInfo = masterService.fetchSupplierInfoData(jwt).stream()
+								.filter(i -> i.getSupplierName().equals(debitOrCreditNote.getName()))
+								.collect(Collectors.toList()).get(0);
 						data.setDistrict(supplierInfo.getDistrict());
 						data.setGstNo(supplierInfo.getSupplierGst());
 						data.setNameOfInstitution(supplierInfo.getSupplierName());
@@ -227,7 +231,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				icmNoLst.add(i.getIcmNo());
 			}
 			data.setTotalNoOfInvoicePresented(totalNoOfInvoicePresented);
-			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setTotalValueOfInvoices(RoundToDecimalPlace.roundToTwoDecimalPlaces(totalValueOfInvoices));
 			data.setIcmNoList(icmNoLst);
 			if (icmNo != null && !icmNo.isEmpty()) {
 				data.setTableData(sDrOb.stream().filter(item -> item.getDateOfPresent() != null
@@ -278,7 +282,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				addedToPresentDatelst.add(item.getAddedToPresentDate());
 			}
 			data.setTotalNoOfAvlToPresent(totalNoOfAvlToPresent);
-			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setTotalValueOfInvoices(RoundToDecimalPlace.roundToTwoDecimalPlaces(totalValueOfInvoices));
 			data.setCcbBranchLst(ccbBranchlst);
 			data.setDueDate(dueDatelst);
 			data.setAddedToPresentDate(addedToPresentDatelst);
@@ -333,7 +337,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				ackEntryDatelst.add(o.getAckEntryDate());
 			}
 			data.setNoOfAvlAckInvoices(totalNoOfAvlAckInvoices);
-			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setTotalValueOfInvoices(RoundToDecimalPlace.roundToTwoDecimalPlaces(totalValueOfInvoices));
 			data.setCcbBranchLst(ccbBranchlst);
 			data.setAckEntryDate(ackEntryDatelst);
 
@@ -392,7 +396,7 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 				}
 			}
 			data.setTotalNoOfInvoices(totalNoOfInvoices);
-			data.setTotalValueOfInvoices(totalValueOfInvoices);
+			data.setTotalValueOfInvoices(RoundToDecimalPlace.roundToTwoDecimalPlaces(totalValueOfInvoices));
 			data.setTotalNoOfInvoicesAcklgd(totalNoOfInvoicesAcklgd);
 			data.setTotalNoOfInvoicesrmng(totalNoOfInvoices - totalNoOfInvoicesAcklgd);
 			if (fromDate != null && toDate != null) {
@@ -402,8 +406,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					return item.getAckQty() == null && dateMatch && item.getAckEntryDate() == null;
 				}).map(item -> {
 					try {
-						BuyerFirmInfo buyerFirmInfo = masterService.getBuyerFirmByFirmNameHandler(jwt,
-								item.getNameOfInstitution());
+						BuyerFirmInfo buyerFirmInfo = masterService.fetchBuyerFirmInfoData(jwt).stream()
+								.filter(i -> i.getNameOfInstitution().equals(item.getNameOfInstitution()))
+								.collect(Collectors.toList()).get(0);
 						return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 								item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
 								buyerFirmInfo.getBranchName(), item.getDueDate(), null, null, null);
@@ -491,9 +496,9 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 			throws Exception {
 		try {
 			logger.info("{}", obj);
-			BankInfo bankInfo = masterService.getBankInfoByOfficeNameHandler(jwt, obj.getAdjData().getOfficeName())
-					.stream()
+			BankInfo bankInfo = masterService.fetchBankInfoData(jwt).stream()
 					.filter(itemData -> itemData.getAccountType().equals("Non PDS A/c Fert")
+							&& itemData.getOfficeName().equals(obj.getAdjData().getOfficeName())
 							&& itemData.getBranchName().equals(obj.getAdjData().getBranchName()))
 					.collect(Collectors.toList()).get(0);
 			obj.getAdjData().setAccountType("Non PDS A/c Fert");

@@ -408,10 +408,11 @@ public class SundryDebtorsAndCreditorsServiceImpl implements SundryDebtorsAndCre
 					try {
 						BuyerFirmInfo buyerFirmInfo = masterService.fetchBuyerFirmInfoData(jwt).stream()
 								.filter(i -> i.getNameOfInstitution().equals(item.getNameOfInstitution()))
-								.collect(Collectors.toList()).get(0);
+								.reduce((first, second) -> second).orElse(null);
 						return new IcTableData(item.getInvoiceNo(), item.getInvoiceDate(), item.getIfmsId(),
 								item.getNameOfInstitution(), item.getDistrict(), item.getAmount(), item.getQty(),
-								buyerFirmInfo.getBranchName(), item.getDueDate(), null, null, null);
+								buyerFirmInfo != null ? buyerFirmInfo.getBranchName() : "", item.getDueDate(), null,
+								null, null);
 					} catch (Exception e) {
 						e.printStackTrace();
 						return null;

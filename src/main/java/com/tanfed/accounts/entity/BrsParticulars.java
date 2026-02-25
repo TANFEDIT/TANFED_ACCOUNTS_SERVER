@@ -27,6 +27,7 @@ public class BrsParticulars {
 	private String action;
 
 	private String particulars;
+	private String particularsType;
 
 	private Double amount;
 	

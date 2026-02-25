@@ -162,7 +162,7 @@ public class FilteredAccountsDataService {
 							&& (voucherStatus.isEmpty() || i.getVoucherStatus().equals(voucherStatus))
 							&& (fromDate == null || (fromDate != null && !i.getReconciliationDate().isBefore(fromDate)))
 							&& (toDate == null || (toDate != null && !i.getReconciliationDate().isAfter(toDate))))
-					.collect(Collectors.toList());
+					.map(i -> mapBrsData(i)).collect(Collectors.toList());
 			brsFiltered.sort(Comparator.comparing(BRS::getId).reversed());
 			data.setBrs(brsFiltered);
 			return data;
@@ -224,6 +224,16 @@ public class FilteredAccountsDataService {
 			contraEntry.add(obj);
 		}
 		return contraEntry;
+	}
+
+	private BRS mapBrsData(BRS brs) {
+		List<BrsParticulars> daybookFiltered = brs.getDaybookTranscations().stream()
+				.filter(i -> i.getParticularsType().equals("Daybook")).collect(Collectors.toList());
+		List<BrsParticulars> passbookFiltered = brs.getPassbookTranscations().stream()
+				.filter(i -> i.getParticularsType().equals("Passbook")).collect(Collectors.toList());
+		brs.setDaybookTranscations(daybookFiltered);
+		brs.setPassbookTranscations(passbookFiltered);
+		return brs;
 	}
 
 	private PaymentVoucher fetchContraPv(String contraId) {

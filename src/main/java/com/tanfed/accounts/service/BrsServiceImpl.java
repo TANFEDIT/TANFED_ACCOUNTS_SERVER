@@ -39,9 +39,11 @@ public class BrsServiceImpl implements BrsService {
 		try {
 			obj.getPassbookTranscations().forEach(i -> {
 				i.setBrs(obj);
+				i.setParticularsType("Passbook");
 			});
 			obj.getDaybookTranscations().forEach(i -> {
 				i.setBrs(obj);
+				i.setParticularsType("Daybook");
 			});
 			String empId = JwtTokenValidator.getEmailFromJwtToken(jwt);
 			obj.setEmpId(Arrays.asList(empId));
